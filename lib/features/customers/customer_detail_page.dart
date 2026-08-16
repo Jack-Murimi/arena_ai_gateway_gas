@@ -305,14 +305,20 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                         : AppColors.textSecondary,
                   ),
                   title: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        contact.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      Expanded(
+                        child: Text(
+                          contact.name,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                       if (contact.isPrimary) ...[
                         const SizedBox(width: 8),
-                        _chip('Main', AppColors.accent),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: _chip('Main', AppColors.accent),
+                        ),
                       ],
                     ],
                   ),
@@ -362,18 +368,20 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                         : AppColors.textSecondary,
                   ),
                   title: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
                           location.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                       if (location.isPrimary) ...[
                         const SizedBox(width: 8),
-                        _chip('Main', AppColors.accent),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: _chip('Main', AppColors.accent),
+                        ),
                       ],
                     ],
                   ),
