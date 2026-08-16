@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/utils/num_parse.dart';
 import '../../deliveries/models/delivery.dart';
 import '../models/rider.dart';
 
@@ -50,17 +51,13 @@ class RiderRepository {
           phone: entry.value['phone'] as String?,
           branchId: entry.value['branch_id'] as String?,
           branchName: entry.value['branch_name'] as String?,
-          deliveredCount:
-              ((entry.value['delivered_count'] as num?) ?? 0).toInt(),
-          deliveredAmount:
-              ((entry.value['delivered_amount'] as num?) ?? 0).toDouble(),
-          pendingCount: ((entry.value['pending_count'] as num?) ?? 0).toInt(),
+          deliveredCount: parseInt(entry.value['delivered_count']) ?? 0,
+          deliveredAmount: parseDouble(entry.value['delivered_amount']) ?? 0,
+          pendingCount: parseInt(entry.value['pending_count']) ?? 0,
           targetDeliveries:
-              ((targetByRider[entry.key]?['target_deliveries'] as num?) ?? 0)
-                  .toInt(),
+              parseInt(targetByRider[entry.key]?['target_deliveries']) ?? 0,
           targetAmount:
-              ((targetByRider[entry.key]?['target_amount'] as num?) ?? 0)
-                  .toDouble(),
+              parseDouble(targetByRider[entry.key]?['target_amount']) ?? 0,
         ),
     ];
     summaries.sort((a, b) => a.fullName.compareTo(b.fullName));

@@ -1,3 +1,5 @@
+import '../../../core/utils/num_parse.dart';
+
 /// A flagged selling-price change, awaiting admin/director confirmation.
 ///
 /// Cashiers can override a product's selling price during a sale; the
@@ -38,12 +40,15 @@ class PriceChangeRequest {
     return PriceChangeRequest(
       id: map['id'] as String,
       productId: (map['product_id'] as String?) ?? '',
-      productName: product?['name'] as String?,
-      oldPrice: ((map['old_price'] as num?) ?? 0).toDouble(),
-      newPrice: ((map['new_price'] as num?) ?? 0).toDouble(),
+      productName: (map['product_name'] as String?) ??
+          (product?['name'] as String?),
+      oldPrice: parseDouble(map['old_price']) ?? 0,
+      newPrice: parseDouble(map['new_price']) ?? 0,
       status: (map['status'] as String?) ?? 'pending',
-      changedByName: profile?['full_name'] as String?,
-      changedByRole: profile?['role'] as String?,
+      changedByName: (map['changed_by_name'] as String?) ??
+          (profile?['full_name'] as String?),
+      changedByRole: (map['changed_by_role'] as String?) ??
+          (profile?['role'] as String?),
       saleId: map['sale_id'] as String?,
       note: map['note'] as String?,
       createdAt: map['created_at'] != null

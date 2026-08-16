@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/num_parse.dart';
+
 /// Product categories used across the business.
 enum ProductType {
   refill,
@@ -89,11 +91,11 @@ class Product {
         id: map['id'] as String,
         name: (map['name'] as String?) ?? '',
         productType: ProductType.fromString(map['product_type'] as String?),
-        sizeKg: (map['size_kg'] as num?)?.toDouble(),
+        sizeKg: parseDouble(map['size_kg']),
         brand: map['brand'] as String?,
-        salePrice: ((map['sale_price'] as num?) ?? 0).toDouble(),
-        costPrice: ((map['cost_price'] as num?) ?? 0).toDouble(),
-        lowStockThreshold: ((map['low_stock_threshold'] as num?) ?? 5).toInt(),
+        salePrice: parseDouble(map['sale_price']) ?? 0,
+        costPrice: parseDouble(map['cost_price']) ?? 0,
+        lowStockThreshold: parseInt(map['low_stock_threshold']) ?? 5,
         isActive: map['is_active'] as bool? ?? true,
       );
 }

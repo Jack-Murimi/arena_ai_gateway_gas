@@ -1,3 +1,5 @@
+import '../../../core/utils/num_parse.dart';
+
 /// A delivery assigned to a rider.
 class Delivery {
   const Delivery({
@@ -43,7 +45,7 @@ class Delivery {
       riderName: rider?['full_name'] as String?,
       customerName: (map['customer_name'] as String?) ?? '',
       location: map['location'] as String?,
-      amount: ((map['amount'] as num?) ?? 0).toDouble(),
+      amount: parseDouble(map['amount']) ?? 0,
       status: (map['status'] as String?) ?? 'pending',
       note: map['note'] as String?,
       createdAt: map['created_at'] != null

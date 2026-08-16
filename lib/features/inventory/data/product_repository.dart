@@ -58,10 +58,9 @@ class ProductRepository {
   // -------------------------------------------------------------------------
 
   Future<List<PriceChangeRequest>> fetchPriceChangeRequests({String? status}) async {
-    var query = _db.from('price_change_requests').select(
-          '*, products(name), '
-          'profiles!price_change_requests_changed_by_fkey(full_name, role)',
-        );
+    // Read from price_change_requests_view so names of the people involved
+    // are visible to all authenticated users (profiles RLS would hide them).
+    var query = _db.from('price_change_requests_view').select();
     if (status != null) {
       query = query.eq('status', status);
     }

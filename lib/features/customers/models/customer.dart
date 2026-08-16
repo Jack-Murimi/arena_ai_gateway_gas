@@ -1,3 +1,4 @@
+import '../../../core/utils/num_parse.dart';
 import '../../inventory/models/product.dart';
 
 /// A customer = a household/business that buys gas from us.
@@ -35,8 +36,8 @@ class Customer {
         name: (map['name'] as String?) ?? '',
         phone: map['phone'] as String?,
         email: map['email'] as String?,
-        creditLimit: ((map['credit_limit'] as num?) ?? 0).toDouble(),
-        balance: ((map['balance'] as num?) ?? 0).toDouble(),
+        creditLimit: parseDouble(map['credit_limit']) ?? 0,
+        balance: parseDouble(map['balance']) ?? 0,
         isActive: map['is_active'] as bool? ?? true,
         createdAt: map['created_at'] != null
             ? DateTime.tryParse(map['created_at'] as String)

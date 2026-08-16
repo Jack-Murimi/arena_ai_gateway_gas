@@ -35,6 +35,22 @@ void main() {
     expect(product.displayName, 'Refill 13kg');
   });
 
+  test('Product.fromMap tolerates stringified numbers from PostgREST', () {
+    final product = Product.fromMap({
+      'id': 'abc',
+      'name': '13kg Afrigas refill',
+      'product_type': 'refill',
+      'size_kg': '13.00',
+      'sale_price': '1950.00',
+      'cost_price': '1700.00',
+      'low_stock_threshold': '10',
+    });
+    expect(product.sizeKg, 13.0);
+    expect(product.salePrice, 1950.0);
+    expect(product.costPrice, 1700.0);
+    expect(product.lowStockThreshold, 10);
+  });
+
   test('subtitle skips size/brand/type already in name', () {
     final afrigas = Product.fromMap({
       'id': '1',
