@@ -69,16 +69,17 @@ class Product {
   bool _containsInName(String value) =>
       name.toLowerCase().contains(value.toLowerCase());
 
-  /// Short type+size line for list rows, e.g. "Refill" or
-  /// "Accessory · Kabsons" (skips size/brand already present in the name).
+  /// Short type+size line for list rows.
+  /// Skips size/brand/type words already present in the name
+  /// (e.g. "13kg Afrigas refill" -> subtitle is empty).
   String get subtitle {
-    final parts = <String>[productType.label];
+    final parts = <String>[];
+    final typeLabel = productType.label;
+    if (!_containsInName(typeLabel)) parts.add(typeLabel);
     if (sizeKg != null && !_containsInName(Product.formatSizeKg(sizeKg))) {
       parts.add(Product.formatSizeKg(sizeKg));
     }
-    if (brand != null &&
-        brand!.isNotEmpty &&
-        !_containsInName(brand!)) {
+    if (brand != null && brand!.isNotEmpty && !_containsInName(brand!)) {
       parts.add(brand!);
     }
     return parts.join(' · ');

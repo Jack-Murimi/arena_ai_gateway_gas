@@ -20,7 +20,10 @@ class ProductRepository {
     if (type != null) {
       query = query.eq('product_type', type.name);
     }
-    final rows = await query.order('name');
+    final rows = await query
+        .order('product_type')
+        .order('size_kg', nullsFirst: false)
+        .order('name');
     return rows.map(Product.fromMap).toList();
   }
 

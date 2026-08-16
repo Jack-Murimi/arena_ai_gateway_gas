@@ -35,22 +35,22 @@ void main() {
     expect(product.displayName, 'Refill 13kg');
   });
 
-  test('subtitle skips size/brand already in name', () {
+  test('subtitle skips size/brand/type already in name', () {
     final afrigas = Product.fromMap({
       'id': '1',
-      'name': 'Afrigas 13kg',
+      'name': '13kg Afrigas refill',
       'product_type': 'refill',
       'size_kg': 13,
       'brand': 'Afrigas',
     });
-    expect(afrigas.subtitle, 'Refill');
+    expect(afrigas.subtitle, '');
 
     final regulator = Product.fromMap({
       'id': '2',
-      'name': 'Regulator',
+      'name': 'Kabsons regulator',
       'product_type': 'accessory',
       'brand': 'Kabsons',
     });
-    expect(regulator.subtitle, 'Accessory · Kabsons');
+    expect(regulator.subtitle, 'Accessory');
   });
 }
