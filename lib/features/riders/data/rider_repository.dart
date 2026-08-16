@@ -21,12 +21,8 @@ class RiderRepository {
   // -------------------------------------------------------------------------
 
   Future<List<RiderSummary>> fetchRiderSummaries() async {
-    final riders = await _db
-        .from('profiles')
-        .select('*, branches(name)')
-        .eq('role', 'rider')
-        .order('full_name');
-
+    // Read from the rider_delivery_stats view (owner-rights, RLS-free, so
+    // riders can also see colleagues' performance) + rider_targets.
     List<Map<String, dynamic>> stats = [];
     List<Map<String, dynamic>> targets = [];
     try {
@@ -46,31 +42,29 @@ class RiderRepository {
       for (final t in targets) t['rider_id'] as String: t,
     };
 
-    return [
-      for (final r in riders)
+    final summaries = <RiderSummary>[
+      for (final entry in statsByRider.entries)
         RiderSummary(
-          id: r['id'] as String,
-          fullName: (r['full_name'] as String?) ?? '',
-          phone: r['phone'] as String?,
-          branchId: r['branch_id'] as String?,
-          branchName:
-              (r['branches'] as Map<String, dynamic>?)?['name'] as String?,
+          id: entry.key,
+          fullName: (entry.value['full_name'] as String?) ?? '',
+          phone: entry.value['phone'] as String?,
+          branchId: entry.value['branch_id'] as String?,
+          branchName: entry.value['branch_name'] as String?,
           deliveredCount:
-              ((statsByRider[r['id']]?['delivered_count'] as num?) ?? 0)
-                  .toInt(),
+              ((entry.value['delivered_count'] as num?) ?? 0).toInt(),
           deliveredAmount:
-              ((statsByRider[r['id']]?['delivered_amount'] as num?) ?? 0)
-                  .toDouble(),
-          pendingCount:
-              ((statsByRider[r['id']]?['pending_count'] as num?) ?? 0).toInt(),
+              ((entry.value['delivered_amount'] as num?) ?? 0).toDouble(),
+          pendingCount: ((entry.value['pending_count'] as num?) ?? 0).toInt(),
           targetDeliveries:
-              ((targetByRider[r['id']]?['target_deliveries'] as num?) ?? 0)
+              ((targetByRider[entry.key]?['target_deliveries'] as num?) ?? 0)
                   .toInt(),
           targetAmount:
-              ((targetByRider[r['id']]?['target_amount'] as num?) ?? 0)
+              ((targetByRider[entry.key]?['target_amount'] as num?) ?? 0)
                   .toDouble(),
         ),
     ];
+    summaries.sort((a, b) => a.fullName.compareTo(b.fullName));
+    return summaries;
   }
 
   static String _currentMonth() {
