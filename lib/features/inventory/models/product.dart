@@ -63,19 +63,24 @@ class Product {
     return rounded == sizeKg ? '${rounded.toInt()}kg' : '${sizeKg}kg';
   }
 
-  /// e.g. "Refill · 13kg · Gateway"
-  String get displayName {
-    final parts = <String>[name];
-    if (sizeKg != null) parts.add(formatSizeKg(sizeKg));
-    if (brand != null && brand!.isNotEmpty) parts.add(brand!);
-    return parts.join(' · ');
-  }
+  /// e.g. "Afrigas 13kg" (name already carries brand & size for catalogue items).
+  String get displayName => name;
 
-  /// Short type+size line for list rows, e.g. "Refill · 13kg · Gateway".
+  bool _containsInName(String value) =>
+      name.toLowerCase().contains(value.toLowerCase());
+
+  /// Short type+size line for list rows, e.g. "Refill" or
+  /// "Accessory · Kabsons" (skips size/brand already present in the name).
   String get subtitle {
     final parts = <String>[productType.label];
-    if (sizeKg != null) parts.add(formatSizeKg(sizeKg));
-    if (brand != null && brand!.isNotEmpty) parts.add(brand!);
+    if (sizeKg != null && !_containsInName(Product.formatSizeKg(sizeKg))) {
+      parts.add(Product.formatSizeKg(sizeKg));
+    }
+    if (brand != null &&
+        brand!.isNotEmpty &&
+        !_containsInName(brand!)) {
+      parts.add(brand!);
+    }
     return parts.join(' · ');
   }
 

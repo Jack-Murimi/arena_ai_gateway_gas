@@ -32,6 +32,25 @@ void main() {
       'cost_price': 1700,
     });
     expect(product.productType, ProductType.cylinder);
-    expect(product.displayName, 'Refill 13kg · 13kg');
+    expect(product.displayName, 'Refill 13kg');
+  });
+
+  test('subtitle skips size/brand already in name', () {
+    final afrigas = Product.fromMap({
+      'id': '1',
+      'name': 'Afrigas 13kg',
+      'product_type': 'refill',
+      'size_kg': 13,
+      'brand': 'Afrigas',
+    });
+    expect(afrigas.subtitle, 'Refill');
+
+    final regulator = Product.fromMap({
+      'id': '2',
+      'name': 'Regulator',
+      'product_type': 'accessory',
+      'brand': 'Kabsons',
+    });
+    expect(regulator.subtitle, 'Accessory · Kabsons');
   });
 }
