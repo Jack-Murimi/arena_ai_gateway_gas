@@ -363,9 +363,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                   ),
                   title: Row(
                     children: [
-                      Text(
-                        location.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      Expanded(
+                        child: Text(
+                          location.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                       if (location.isPrimary) ...[
                         const SizedBox(width: 8),
