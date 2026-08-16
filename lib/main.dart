@@ -8,8 +8,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: AppConfig.supabaseUrl,
-    publishableKey: AppConfig.supabaseAnonKey,
+    url: AppConfig.supabaseUrlEffective,
+    publishableKey: AppConfig.supabaseKeyEffective,
   );
 
   runApp(const GatewayGasApp());

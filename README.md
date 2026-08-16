@@ -31,14 +31,22 @@ Flutter point-of-sale + ERP system for **Gateway Gas Enterprises**, backed by
 
 ```sh
 flutter pub get
-flutter run \
-  --dart-define=SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=YOUR_ANON_KEY
+flutter run
 ```
 
-- Find the URL + anon key under **Project Settings → API**.
-- The anon key is a *public* key — safe to embed via `--dart-define`
-  (security comes from Row Level Security, which the migration enables).
+The app ships with the dev project's Supabase URL and publishable key baked
+in, so it connects out of the box. To point at a different project (e.g. your
+production Supabase), override via `--dart-define`:
+
+```sh
+flutter run \
+  --dart-define=SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co \
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_XXX
+```
+
+- Find the URL + key under **Project Settings → API** (publishable key).
+- The publishable key is a *public* key — safe to embed (security comes from
+  Row Level Security, which the migration enables).
 
 To run on a specific device:
 
