@@ -5,7 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../auth/auth_controller.dart';
 import '../customers/customers_page.dart';
 import '../dashboard/dashboard_page.dart';
-import '../inventory/inventory_page.dart';
+import '../inventory/products_page.dart';
 import '../pos/pos_page.dart';
 import '../reports/reports_page.dart';
 import '../settings/settings_page.dart';
@@ -34,7 +34,7 @@ class _HomeShellState extends State<HomeShell> {
   static const _pages = [
     DashboardPage(),
     PosPage(),
-    InventoryPage(),
+    ProductsPage(),
     CustomersPage(),
     ReportsPage(),
     SettingsPage(),

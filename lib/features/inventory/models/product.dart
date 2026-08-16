@@ -1,24 +1,62 @@
-/// A gas product (cylinder size × brand) — from the `products` table.
+import 'package:flutter/material.dart';
+
+/// Product categories used across the business.
+enum ProductType {
+  refill,
+  cylinder,
+  accessory,
+  service;
+
+  String get label => switch (this) {
+        ProductType.refill => 'Refill',
+        ProductType.cylinder => 'Cylinder',
+        ProductType.accessory => 'Accessory',
+        ProductType.service => 'Service',
+      };
+
+  IconData get icon => switch (this) {
+        ProductType.refill => Icons.local_fire_department,
+        ProductType.cylinder => Icons.propane_tank_outlined,
+        ProductType.accessory => Icons.extension_outlined,
+        ProductType.service => Icons.handyman_outlined,
+      };
+
+  static ProductType fromString(String? value) => switch (value) {
+        'cylinder' => ProductType.cylinder,
+        'accessory' => ProductType.accessory,
+        'service' => ProductType.service,
+        _ => ProductType.refill,
+      };
+}
+
+/// A product: refill, cylinder, accessory or service.
 class Product {
   const Product({
     required this.id,
     required this.name,
+    this.productType = ProductType.refill,
     this.sizeKg,
     this.brand,
     this.salePrice = 0,
     this.costPrice = 0,
+    this.lowStockThreshold = 5,
     this.isActive = true,
   });
 
   final String id;
   final String name;
+  final ProductType productType;
   final double? sizeKg;
   final String? brand;
   final double salePrice;
   final double costPrice;
+  final int lowStockThreshold;
   final bool isActive;
 
-  /// Human-friendly size, e.g. 13kg (no trailing ".0").
+  /// The standard refill sizes available at Gateway Gas.
+  static const List<double> refillSizes = [3, 6, 13, 22.5, 35, 45, 50];
+
+  /// Human-friendly size, e.g. 13kg / 22.5kg (no trailing ".0").
   static String formatSizeKg(double? sizeKg) {
     if (sizeKg == null) return '';
     final rounded = sizeKg.roundToDouble();
@@ -33,13 +71,23 @@ class Product {
     return parts.join(' · ');
   }
 
+  /// Short type+size line for list rows, e.g. "Refill · 13kg · Gateway".
+  String get subtitle {
+    final parts = <String>[productType.label];
+    if (sizeKg != null) parts.add(formatSizeKg(sizeKg));
+    if (brand != null && brand!.isNotEmpty) parts.add(brand!);
+    return parts.join(' · ');
+  }
+
   factory Product.fromMap(Map<String, dynamic> map) => Product(
         id: map['id'] as String,
         name: (map['name'] as String?) ?? '',
+        productType: ProductType.fromString(map['product_type'] as String?),
         sizeKg: (map['size_kg'] as num?)?.toDouble(),
         brand: map['brand'] as String?,
         salePrice: ((map['sale_price'] as num?) ?? 0).toDouble(),
         costPrice: ((map['cost_price'] as num?) ?? 0).toDouble(),
+        lowStockThreshold: ((map['low_stock_threshold'] as num?) ?? 5).toInt(),
         isActive: map['is_active'] as bool? ?? true,
       );
 }
