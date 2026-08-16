@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/login_screen.dart';
 import 'features/shell/home_shell.dart';
+import 'features/shell/rider_shell.dart';
 
 /// Root widget of the Gateway Gas Enterprises app.
 class GatewayGasApp extends StatelessWidget {
@@ -20,9 +21,16 @@ class GatewayGasApp extends StatelessWidget {
         theme: AppTheme.light,
         home: Consumer<AuthController>(
           builder: (context, auth, _) {
+            if (auth.status == AuthStatus.loading ||
+                (auth.status == AuthStatus.authenticated &&
+                    auth.profileLoading)) {
+              return const _SplashScreen();
+            }
             return switch (auth.status) {
               AuthStatus.loading => const _SplashScreen(),
-              AuthStatus.authenticated => const HomeShell(),
+              AuthStatus.authenticated => auth.isRider
+                  ? const RiderShell()
+                  : const HomeShell(),
               AuthStatus.unauthenticated => const LoginScreen(),
             };
           },

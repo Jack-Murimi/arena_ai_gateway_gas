@@ -5,8 +5,10 @@ import '../../core/theme/app_theme.dart';
 import '../auth/auth_controller.dart';
 import '../customers/customers_page.dart';
 import '../dashboard/dashboard_page.dart';
+import '../deliveries/deliveries_page.dart';
 import '../inventory/products_page.dart';
 import '../reports/reports_page.dart';
+import '../riders/riders_page.dart';
 import '../sales/sales_page.dart';
 import '../settings/settings_page.dart';
 
@@ -52,12 +54,11 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _buildDrawer(BuildContext context) {
-    final futureItems = <(IconData, String)>[
-      (Icons.shopping_basket_outlined, 'Purchases'),
-      (Icons.local_shipping_outlined, 'Suppliers'),
-      (Icons.delivery_dining_outlined, 'Deliveries'),
-      (Icons.cyclone_outlined, 'Cylinder deposits'),
-    ];
+            final futureItems = <(IconData, String)>[
+              (Icons.shopping_basket_outlined, 'Purchases'),
+              (Icons.local_shipping_outlined, 'Suppliers'),
+              (Icons.cyclone_outlined, 'Cylinder deposits'),
+            ];
 
     return Drawer(
       child: SafeArea(
@@ -98,6 +99,32 @@ class _HomeShellState extends State<HomeShell> {
                 color: AppColors.textSecondary,
               ),
               onTap: () => _openDrawerScreen(const ReportsPage(), 'Reports'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delivery_dining_outlined),
+              title: const Text(
+                'Deliveries',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () => _openDrawerScreen(const DeliveriesPage(), 'Deliveries'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.two_wheeler_outlined),
+              title: const Text(
+                'Riders',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () => _openDrawerScreen(const RidersPage(), 'Riders'),
             ),
             const Divider(),
             const Padding(
