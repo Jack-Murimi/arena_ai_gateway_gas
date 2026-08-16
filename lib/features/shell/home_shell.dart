@@ -6,12 +6,13 @@ import '../auth/auth_controller.dart';
 import '../customers/customers_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../inventory/products_page.dart';
-import '../pos/pos_page.dart';
 import '../reports/reports_page.dart';
+import '../sales/sales_page.dart';
 import '../settings/settings_page.dart';
 
 /// Main authenticated shell: navigation rail on wide screens,
-/// bottom navigation bar on phones.
+/// bottom navigation bar on phones, and a hamburger drawer that
+/// holds Reports plus future screens (purchases, suppliers…).
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -24,21 +25,116 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _titles = [
     'Dashboard',
-    'Point of Sale',
-    'Inventory',
+    'Sales',
+    'Stock',
     'Customers',
-    'Reports',
     'Settings',
   ];
 
   static const _pages = [
     DashboardPage(),
-    PosPage(),
+    SalesPage(),
     ProductsPage(),
     CustomersPage(),
-    ReportsPage(),
     SettingsPage(),
   ];
+
+  void _openDrawerScreen(Widget screen, String title) {
+    Navigator.pop(context); // close the drawer
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: screen,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    final futureItems = <(IconData, String)>[
+      (Icons.shopping_basket_outlined, 'Purchases'),
+      (Icons.local_shipping_outlined, 'Suppliers'),
+      (Icons.delivery_dining_outlined, 'Deliveries'),
+      (Icons.cyclone_outlined, 'Cylinder deposits'),
+    ];
+
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Row(
+                children: const [
+                  Icon(
+                    Icons.local_fire_department,
+                    color: AppColors.accent,
+                    size: 32,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Gateway Gas',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 17,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.bar_chart_outlined),
+              title: const Text(
+                'Reports',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () => _openDrawerScreen(const ReportsPage(), 'Reports'),
+            ),
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Text(
+                'Coming soon',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            for (final (icon, label) in futureItems)
+              ListTile(
+                leading: Icon(icon, color: AppColors.textSecondary),
+                title: Text(
+                  label,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+                enabled: false,
+              ),
+            const Spacer(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppColors.danger),
+              title: const Text(
+                'Sign out',
+                style: TextStyle(color: AppColors.danger),
+              ),
+              onTap: () => context.read<AuthController>().signOut(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +154,7 @@ class _HomeShellState extends State<HomeShell> {
         NavigationDestination(
           icon: Icon(Icons.point_of_sale_outlined),
           selectedIcon: Icon(Icons.point_of_sale),
-          label: 'POS',
+          label: 'Sales',
         ),
         NavigationDestination(
           icon: Icon(Icons.inventory_2_outlined),
@@ -69,11 +165,6 @@ class _HomeShellState extends State<HomeShell> {
           icon: Icon(Icons.people_outline),
           selectedIcon: Icon(Icons.people),
           label: 'Customers',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.bar_chart_outlined),
-          selectedIcon: Icon(Icons.bar_chart),
-          label: 'Reports',
         ),
         NavigationDestination(
           icon: Icon(Icons.settings_outlined),
@@ -115,6 +206,7 @@ class _HomeShellState extends State<HomeShell> {
 
     if (!isWide) {
       return Scaffold(
+        drawer: _buildDrawer(context),
         appBar: AppBar(title: Text(_titles[_index]), actions: [userMenu]),
         body: content,
         bottomNavigationBar: navBar,
@@ -122,6 +214,7 @@ class _HomeShellState extends State<HomeShell> {
     }
 
     return Scaffold(
+      drawer: _buildDrawer(context),
       body: Row(
         children: [
           NavigationRail(
@@ -135,10 +228,8 @@ class _HomeShellState extends State<HomeShell> {
               color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
-            unselectedIconTheme:
-                const IconThemeData(color: Colors.white70),
-            unselectedLabelTextStyle:
-                const TextStyle(color: Colors.white70),
+            unselectedIconTheme: const IconThemeData(color: Colors.white70),
+            unselectedLabelTextStyle: const TextStyle(color: Colors.white70),
             leading: const Padding(
               padding: EdgeInsets.all(16),
               child: Row(
@@ -170,22 +261,17 @@ class _HomeShellState extends State<HomeShell> {
               NavigationRailDestination(
                 icon: Icon(Icons.point_of_sale_outlined),
                 selectedIcon: Icon(Icons.point_of_sale),
-                label: Text('Point of Sale'),
+                label: Text('Sales'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.inventory_2_outlined),
                 selectedIcon: Icon(Icons.inventory_2),
-                label: Text('Inventory'),
+                label: Text('Stock'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.people_outline),
                 selectedIcon: Icon(Icons.people),
                 label: Text('Customers'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.bar_chart_outlined),
-                selectedIcon: Icon(Icons.bar_chart),
-                label: Text('Reports'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.settings_outlined),
@@ -211,16 +297,26 @@ class _HomeShellState extends State<HomeShell> {
                   width: double.infinity,
                   color: AppColors.primary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
+                    horizontal: 16,
+                    vertical: 10,
                   ),
-                  child: Text(
-                    _titles[_index],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Menu',
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _titles[_index],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(child: content),

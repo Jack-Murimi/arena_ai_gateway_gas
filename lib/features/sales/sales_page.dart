@@ -7,14 +7,14 @@ import '../../core/utils/formatters.dart';
 ///
 /// Layout: product grid (left) + cart & payment panel (right).
 /// Data wiring to Supabase (products, cart totals, payments) comes next.
-class PosPage extends StatefulWidget {
-  const PosPage({super.key});
+class SalesPage extends StatefulWidget {
+  const SalesPage({super.key});
 
   @override
-  State<PosPage> createState() => _PosPageState();
+  State<SalesPage> createState() => _SalesPageState();
 }
 
-class _PosPageState extends State<PosPage> {
+class _SalesPageState extends State<SalesPage> {
   static const _paymentMethods = ['Cash', 'M-Pesa', 'Credit'];
 
   int _selectedMethod = 0;
