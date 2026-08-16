@@ -134,24 +134,23 @@ class _HomeShellState extends State<HomeShell> {
                 const IconThemeData(color: Colors.white70),
             unselectedLabelTextStyle:
                 const TextStyle(color: Colors.white70),
-            leading: Padding(
-              padding: const EdgeInsets.all(16),
+            leading: const Padding(
+              padding: EdgeInsets.all(16),
               child: Row(
-                children: const [
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Icon(
                     Icons.local_fire_department,
                     color: AppColors.accent,
                     size: 32,
                   ),
                   SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Gateway Gas',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
+                  Text(
+                    'Gateway Gas',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
                     ),
                   ),
                 ],
