@@ -75,6 +75,11 @@ class _HomeShellState extends State<HomeShell> {
           selectedIcon: Icon(Icons.bar_chart),
           label: 'Reports',
         ),
+        NavigationDestination(
+          icon: Icon(Icons.settings_outlined),
+          selectedIcon: Icon(Icons.settings),
+          label: 'Settings',
+        ),
       ],
     );
 
