@@ -128,7 +128,7 @@ class _CustomersPageState extends State<CustomersPage> {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 96),
       itemCount: _customers.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 6),
       itemBuilder: (context, i) {
         final customer = _customers[i];
         return _CustomerTile(
@@ -159,61 +159,91 @@ class _CustomerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final owes = customer.balance > 0.001;
 
-    final subtitleLines = <String>[
+    // One compact summary line: main contact and/or main location.
+    final summary = <String>[
       if (primaryContact != null)
         '${primaryContact!.name} · ${primaryContact!.phone}',
-      if (primaryLocation != null)
-        '📍 ${primaryLocation!.name}'
-            '${primaryLocation!.address != null && primaryLocation!.address!.isNotEmpty ? ' — ${primaryLocation!.address}' : ''}',
+      if (primaryLocation != null) primaryLocation!.name,
     ];
 
     return Card(
-      child: ListTile(
+      margin: EdgeInsets.zero,
+      child: InkWell(
         onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-          foregroundColor: AppColors.primary,
-          child: Text(
-            customer.initials,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-        title: Text(
-          customer.name,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: subtitleLines.isEmpty
-            ? null
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final line in subtitleLines)
-                    Text(line, style: const TextStyle(fontSize: 12.5)),
-                ],
-              ),
-        isThreeLine: subtitleLines.length > 1,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: (owes ? AppColors.danger : AppColors.success)
-                    .withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                owes ? AppFormatters.kes(customer.balance) : 'No balance',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: owes ? AppColors.danger : AppColors.success,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                foregroundColor: AppColors.primary,
+                child: Text(
+                  customer.initials,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      customer.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (summary.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        summary.join('  ·  '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: (owes ? AppColors.danger : AppColors.success)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  owes ? AppFormatters.kes(customer.balance) : 'No balance',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: owes ? AppColors.danger : AppColors.success,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
         ),
       ),
     );

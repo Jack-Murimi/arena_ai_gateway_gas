@@ -267,8 +267,7 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
               'People who order gas (${_contacts.length})',
             ),
             Text(
-              'A customer can have several people ordering — house keeper, '
-              'security, children. Mark the main one with ⭐.',
+              'House keeper, security, children… mark the main one ⭐.',
               style: const TextStyle(
                 fontSize: 12.5,
                 color: AppColors.textSecondary,
@@ -298,8 +297,7 @@ class _CustomerFormPageState extends State<CustomerFormPage> {
               'Locations (${_locations.length})',
             ),
             Text(
-              'Delivery points for this customer. Each can have its own '
-              'default cylinder size & brand.',
+              'Delivery points — each can have its own default cylinder.',
               style: const TextStyle(
                 fontSize: 12.5,
                 color: AppColors.textSecondary,
