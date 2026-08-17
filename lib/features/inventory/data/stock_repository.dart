@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/utils/num_parse.dart';
 import '../models/stock_item.dart';
 
 /// Data access for stock levels, initialization and purchase orders.
@@ -10,25 +11,43 @@ class StockRepository {
     return _db.from('branches').select('id, name').order('name');
   }
 
-  Future<List<StockItem>> fetchBranchStock(String branchId) async {
-    final rows = await _db
-        .from('branch_stock_summary')
-        .select()
-        .eq('branch_id', branchId)
-        .order('product_name');
+  Future<List<StockItem>> fetchStock({String? branchId}) async {
+    var query = _db.from('branch_stock_summary').select();
+    if (branchId != null) {
+      query = query.eq('branch_id', branchId);
+    }
+    final rows = await query.order('product_name');
     return rows.map(StockItem.fromMap).toList();
   }
 
   /// Totals per product type for a branch: {refill: qty, cylinder: qty, ...}
-  Future<Map<String, int>> fetchBranchTypeTotals(String branchId) async {
-    final rows = await _db
-        .from('branch_type_totals')
-        .select()
-        .eq('branch_id', branchId);
+  Future<Map<String, int>> fetchBranchTypeTotals({String? branchId}) async {
+    var query = _db.from('branch_type_totals').select();
+    if (branchId != null) {
+      query = query.eq('branch_id', branchId);
+    }
+    final rows = await query;
     return {
       for (final r in rows)
-        (r['product_type'] as String?) ?? '': ((r['total_quantity'] as num?) ?? 0).toInt(),
+        (r['product_type'] as String?) ?? '': parseInt(r['total_quantity']) ?? 0,
     };
+  }
+
+  /// Totals by size per type: key 'refill|13' -> qty ('' size = none).
+  Future<Map<String, int>> fetchSizeTotals({String? branchId}) async {
+    var query = _db.from('branch_size_totals').select();
+    if (branchId != null) {
+      query = query.eq('branch_id', branchId);
+    }
+    final rows = await query;
+    final map = <String, int>{};
+    for (final r in rows) {
+      final type = (r['product_type'] as String?) ?? '';
+      final size = (r['size_kg'] as num?)?.toDouble();
+      final sizeKey = size == null ? '' : size.toString();
+      map['$type|$sizeKey'] = parseInt(r['total_quantity']) ?? 0;
+    }
+    return map;
   }
 
   Future<void> initStock({
