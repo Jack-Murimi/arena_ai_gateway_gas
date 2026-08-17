@@ -86,10 +86,58 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
     _load();
   }
 
+  Future<void> _archive() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Archive supplier?'),
+        content: Text(
+          '${widget.supplier.name} will be hidden from the supplier '
+          'list, but their invoices and payments stay on record.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _repo.archiveSupplier(widget.supplier.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${widget.supplier.name} archived')),
+      );
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed: ${e.toString().replaceAll('Exception: ', '')}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.supplier.name)),
+      appBar: AppBar(
+        title: Text(widget.supplier.name),
+        actions: [
+          IconButton(
+            tooltip: 'Archive supplier',
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: _archive,
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

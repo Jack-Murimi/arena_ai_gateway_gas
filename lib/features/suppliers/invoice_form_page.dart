@@ -79,7 +79,7 @@ class _InvoiceFormPageState extends State<InvoiceFormPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = _friendlyError(e);
         _loading = false;
       });
     }
@@ -93,6 +93,29 @@ class _InvoiceFormPageState extends State<InvoiceFormPage> {
       l.dispose();
     }
     super.dispose();
+  }
+
+  /// Turn raw exceptions (incl. PostgrestError) into user-friendly text.
+  String _friendlyError(Object e) {
+    final raw = e.toString();
+    final msg = raw.replaceAll('Exception: ', '');
+    if (msg.contains('duplicate key') ||
+        msg.contains('unique constraint') ||
+        msg.toLowerCase().contains('invoice_no')) {
+      return 'An invoice with this number already exists for this '
+          'supplier. Use a different invoice number.';
+    }
+    if (msg.contains('Branch is required')) {
+      return 'Please select the branch the goods were delivered to.';
+    }
+    if (msg.contains('No items')) {
+      return 'Add at least one product with a quantity before saving.';
+    }
+    if (msg.contains('supplier_invoice_no') || msg.contains('P0001')) {
+      return 'Could not save the invoice. Please check the details and '
+          'try again.';
+    }
+    return msg;
   }
 
   Future<void> _pickProduct() async {
@@ -157,7 +180,7 @@ class _InvoiceFormPageState extends State<InvoiceFormPage> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = _friendlyError(e);
       });
     }
   }
@@ -222,7 +245,7 @@ class _InvoiceFormPageState extends State<InvoiceFormPage> {
                                   initialValue: _branchId,
                                   isExpanded: true,
                                   decoration: const InputDecoration(
-                                    labelText: 'Branch',
+                                    labelText: 'Branch *',
                                     isDense: true,
                                   ),
                                   items: [
@@ -234,6 +257,9 @@ class _InvoiceFormPageState extends State<InvoiceFormPage> {
                                   ],
                                   onChanged: (v) =>
                                       setState(() => _branchId = v),
+                                  validator: (v) => v == null
+                                      ? 'Select the branch'
+                                      : null,
                                 ),
                               ),
                             ],
@@ -384,10 +410,32 @@ class _InvoiceFormPageState extends State<InvoiceFormPage> {
   }
 }
 
-class _ProductSheet extends StatelessWidget {
+class _ProductSheet extends StatefulWidget {
   const _ProductSheet({required this.products});
 
   final List<Map<String, dynamic>> products;
+
+  @override
+  State<_ProductSheet> createState() => _ProductSheetState();
+}
+
+class _ProductSheetState extends State<_ProductSheet> {
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final term = _searchCtrl.text.trim().toLowerCase();
+    if (term.isEmpty) return widget.products;
+    return widget.products
+        .where((p) =>
+            ((p['name'] as String?) ?? '').toLowerCase().contains(term))
+        .toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -399,38 +447,61 @@ class _ProductSheet extends StatelessWidget {
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Select products',
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w800),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: (_) => setState(() {}),
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Search products…',
+                        prefixIcon: Icon(Icons.search),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
             ),
             Expanded(
-              child: ListView.separated(
-                controller: scrollController,
-                itemCount: products.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, i) {
-                  final p = products[i];
-                  return ListTile(
-                    dense: true,
-                    title: Text(
-                      (p['name'] as String?) ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 13.5, fontWeight: FontWeight.w600),
+              child: _filtered.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No products match.',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    )
+                  : ListView.separated(
+                      controller: scrollController,
+                      itemCount: _filtered.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final p = _filtered[i];
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            (p['name'] as String?) ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13.5, fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            AppFormatters.kes(
+                                ((p['cost_price'] as num?) ?? 0).toDouble()),
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                          onTap: () => Navigator.of(context).pop(p),
+                        );
+                      },
                     ),
-                    subtitle: Text(
-                      AppFormatters.kes(
-                          ((p['cost_price'] as num?) ?? 0).toDouble()),
-                      style: const TextStyle(fontSize: 11.5),
-                    ),
-                    onTap: () => Navigator.of(context).pop(p),
-                  );
-                },
-              ),
             ),
           ],
         );

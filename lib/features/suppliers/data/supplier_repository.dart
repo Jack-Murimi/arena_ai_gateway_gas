@@ -30,6 +30,13 @@ class SupplierRepository {
     }
   }
 
+  /// Soft-delete: hides the supplier but keeps their invoices/payments.
+  Future<void> archiveSupplier(String supplierId) async {
+    await _db.rpc('admin_archive_supplier', params: {
+      'p_supplier_id': supplierId,
+    });
+  }
+
   Future<List<SupplierInvoice>> fetchInvoices(String supplierId) async {
     final rows = await _db
         .from('supplier_invoices_view')
