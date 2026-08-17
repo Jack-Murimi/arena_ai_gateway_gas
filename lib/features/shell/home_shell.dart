@@ -7,6 +7,8 @@ import '../customers/customers_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../deliveries/deliveries_page.dart';
 import '../inventory/products_page.dart';
+import '../inventory/purchase_orders_page.dart';
+import '../inventory/stock_page.dart';
 import '../reports/reports_page.dart';
 import '../riders/riders_page.dart';
 import '../sales/sales_page.dart';
@@ -55,7 +57,6 @@ class _HomeShellState extends State<HomeShell> {
 
   Widget _buildDrawer(BuildContext context) {
             final futureItems = <(IconData, String)>[
-              (Icons.shopping_basket_outlined, 'Purchases'),
               (Icons.local_shipping_outlined, 'Suppliers'),
               (Icons.cyclone_outlined, 'Cylinder deposits'),
             ];
@@ -125,6 +126,33 @@ class _HomeShellState extends State<HomeShell> {
                 color: AppColors.textSecondary,
               ),
               onTap: () => _openDrawerScreen(const RidersPage(), 'Riders'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory_outlined),
+              title: const Text(
+                'Stock levels',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () => _openDrawerScreen(const StockPage(), 'Stock levels'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_basket_outlined),
+              title: const Text(
+                'Purchase orders',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () =>
+                  _openDrawerScreen(const PurchaseOrdersPage(), 'Purchase orders'),
             ),
             const Divider(),
             const Padding(
