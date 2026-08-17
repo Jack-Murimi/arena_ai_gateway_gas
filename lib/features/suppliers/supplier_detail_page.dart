@@ -7,6 +7,7 @@ import 'invoice_detail_page.dart';
 import 'invoice_form_page.dart';
 import 'models/supplier.dart';
 import 'payment_form_page.dart';
+import 'supplier_form_page.dart';
 
 /// One supplier: account summary, invoices (totals by date), payments
 /// (totals by date), and the invoice list.
