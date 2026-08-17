@@ -42,7 +42,7 @@ class _StockInitPageState extends State<StockInitPage> {
       _error = null;
     });
     try {
-      final current = await _repo.fetchBranchStock(widget.branchId);
+      final current = await _repo.fetchStock(branchId: widget.branchId);
       if (!mounted) return;
       setState(() {
         _current = current;
