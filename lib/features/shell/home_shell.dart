@@ -13,6 +13,7 @@ import '../reports/reports_page.dart';
 import '../riders/riders_page.dart';
 import '../sales/sales_page.dart';
 import '../settings/settings_page.dart';
+import '../suppliers/suppliers_page.dart';
 
 /// Main authenticated shell: navigation rail on wide screens,
 /// bottom navigation bar on phones, and a hamburger drawer that
@@ -57,7 +58,6 @@ class _HomeShellState extends State<HomeShell> {
 
   Widget _buildDrawer(BuildContext context) {
             final futureItems = <(IconData, String)>[
-              (Icons.local_shipping_outlined, 'Suppliers'),
               (Icons.cyclone_outlined, 'Cylinder deposits'),
             ];
 
@@ -153,6 +153,19 @@ class _HomeShellState extends State<HomeShell> {
               ),
               onTap: () =>
                   _openDrawerScreen(const PurchaseOrdersPage(), 'Purchase orders'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.local_shipping_outlined),
+              title: const Text(
+                'Suppliers',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              trailing: const Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              onTap: () => _openDrawerScreen(const SuppliersPage(), 'Suppliers'),
             ),
             const Divider(),
             const Padding(
