@@ -44,6 +44,52 @@ class SupplierRepository {
     });
   }
 
+  // -------------------------------------------------------------------------
+  // Supplier returns (damages)
+  // -------------------------------------------------------------------------
+
+  Future<List<SupplierReturn>> fetchReturns(String supplierId) async {
+    final rows = await _db
+        .from('supplier_returns_view')
+        .select()
+        .eq('supplier_id', supplierId)
+        .order('return_date', ascending: false);
+    return rows.map(SupplierReturn.fromMap).toList();
+  }
+
+  Future<Map<String, dynamic>> saveReturn({
+    required String supplierId,
+    required String branchId,
+    required DateTime returnDate,
+    required String reason,
+    String? notes,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final data = await _db.rpc('admin_save_supplier_return', params: {
+      'p_supplier_id': supplierId,
+      'p_branch_id': branchId,
+      'p_return_date': returnDate.toIso8601String().substring(0, 10),
+      'p_reason': reason,
+      'p_notes': notes,
+      'p_items': items,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  // -------------------------------------------------------------------------
+  // Cheapest-supplier comparison
+  // -------------------------------------------------------------------------
+
+  Future<List<SupplierProductPrice>> fetchPricesForProduct(
+      String productId) async {
+    final rows = await _db
+        .from('supplier_product_prices_view')
+        .select()
+        .eq('product_id', productId)
+        .order('unit_cost');
+    return rows.map(SupplierProductPrice.fromMap).toList();
+  }
+
   Future<List<SupplierInvoice>> fetchInvoices(String supplierId) async {
     final rows = await _db
         .from('supplier_invoices_view')

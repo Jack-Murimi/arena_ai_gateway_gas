@@ -13,6 +13,7 @@ import '../reports/reports_page.dart';
 import '../riders/riders_page.dart';
 import '../sales/sales_page.dart';
 import '../settings/settings_page.dart';
+import '../suppliers/supplier_prices_page.dart';
 import '../suppliers/suppliers_page.dart';
 
 /// Main authenticated shell: navigation rail on wide screens,
@@ -88,98 +89,47 @@ class _HomeShellState extends State<HomeShell> {
               ),
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.bar_chart_outlined),
-              title: const Text(
-                'Reports',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              onTap: () => _openDrawerScreen(const ReportsPage(), 'Reports'),
+            _sectionHeader('Analytics'),
+            _drawerTile(
+              Icons.bar_chart_outlined,
+              'Reports',
+              () => _openDrawerScreen(const ReportsPage(), 'Reports'),
             ),
-            ListTile(
-              leading: const Icon(Icons.delivery_dining_outlined),
-              title: const Text(
-                'Deliveries',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              onTap: () => _openDrawerScreen(const DeliveriesPage(), 'Deliveries'),
+            _sectionHeader('Stock & suppliers'),
+            _drawerTile(
+              Icons.inventory_outlined,
+              'Stock levels',
+              () => _openDrawerScreen(const StockPage(), 'Stock levels'),
             ),
-            ListTile(
-              leading: const Icon(Icons.two_wheeler_outlined),
-              title: const Text(
-                'Riders',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              onTap: () => _openDrawerScreen(const RidersPage(), 'Riders'),
+            _drawerTile(
+              Icons.shopping_basket_outlined,
+              'Purchase orders',
+              () => _openDrawerScreen(
+                  const PurchaseOrdersPage(), 'Purchase orders'),
             ),
-            ListTile(
-              leading: const Icon(Icons.inventory_outlined),
-              title: const Text(
-                'Stock levels',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              onTap: () => _openDrawerScreen(const StockPage(), 'Stock levels'),
+            _drawerTile(
+              Icons.local_shipping_outlined,
+              'Suppliers',
+              () => _openDrawerScreen(const SuppliersPage(), 'Suppliers'),
             ),
-            ListTile(
-              leading: const Icon(Icons.shopping_basket_outlined),
-              title: const Text(
-                'Purchase orders',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              onTap: () =>
-                  _openDrawerScreen(const PurchaseOrdersPage(), 'Purchase orders'),
+            _drawerTile(
+              Icons.price_check_outlined,
+              'Supplier prices',
+              () => _openDrawerScreen(
+                  const SupplierPricesPage(), 'Supplier prices'),
             ),
-            ListTile(
-              leading: const Icon(Icons.local_shipping_outlined),
-              title: const Text(
-                'Suppliers',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              trailing: const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              onTap: () => _openDrawerScreen(const SuppliersPage(), 'Suppliers'),
+            _sectionHeader('Operations'),
+            _drawerTile(
+              Icons.delivery_dining_outlined,
+              'Deliveries',
+              () => _openDrawerScreen(const DeliveriesPage(), 'Deliveries'),
             ),
-            const Divider(),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Text(
-                'Coming soon',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                  letterSpacing: 0.5,
-                ),
-              ),
+            _drawerTile(
+              Icons.two_wheeler_outlined,
+              'Riders',
+              () => _openDrawerScreen(const RidersPage(), 'Riders'),
             ),
+            _sectionHeader('Coming soon'),
             for (final (icon, label) in futureItems)
               ListTile(
                 leading: Icon(icon, color: AppColors.textSecondary),
@@ -201,6 +151,37 @@ class _HomeShellState extends State<HomeShell> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textSecondary,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerTile(IconData icon, String label, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right,
+        size: 18,
+        color: AppColors.textSecondary,
+      ),
+      onTap: onTap,
     );
   }
 

@@ -66,6 +66,21 @@ class _SaleFormState extends State<SaleForm> {
   bool _saving = false;
   String? _error;
 
+  // productId -> available quantity for the selected branch
+  Map<String, int> _stock = {};
+
+  int _availableFor(String productId) => _stock[productId] ?? 0;
+
+  Future<void> _loadStock(String branchId) async {
+    try {
+      final stock = await _repo.fetchStockMap(branchId);
+      if (!mounted) return;
+      setState(() => _stock = stock);
+    } catch (_) {
+      // non-fatal — the DB still guards against overselling
+    }
+  }
+
   static const _methods = ['mpesa', 'cash', 'pdq', 'cheque'];
 
   @override
@@ -114,6 +129,8 @@ class _SaleFormState extends State<SaleForm> {
         }
         _loading = false;
       });
+      final branchId = _branchId;
+      if (branchId != null) _loadStock(branchId);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -128,10 +145,31 @@ class _SaleFormState extends State<SaleForm> {
   // -------------------------------------------------------------------------
 
   void _addProduct(Product product) {
+    final available = _availableFor(product.id);
+    if (available <= 0 && product.productType != ProductType.service) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product.name} is out of stock '
+              '(available: $available)'),
+        ),
+      );
+      return;
+    }
     setState(() {
       final existing = _items.where((i) => i.product.id == product.id);
       if (existing.isNotEmpty) {
-        existing.first.quantity++;
+        final item = existing.first;
+        if (item.quantity < available ||
+            product.productType == ProductType.service) {
+          item.quantity++;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Only $available of ${product.name} available.'),
+            ),
+          );
+        }
       } else {
         final item = _LineItem(product: product);
         if (item.isRefill) {
@@ -249,9 +287,24 @@ class _SaleFormState extends State<SaleForm> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = _friendlyError(e);
       });
     }
+  }
+
+  String _friendlyError(Object e) {
+    final msg = e.toString().replaceAll('Exception: ', '');
+    if (msg.contains('Insufficient stock')) {
+      final match = RegExp(r'Insufficient stock for (.*?) \(available (\d+), requested (\d+)\)')
+          .firstMatch(msg);
+      if (match != null) {
+        return 'Not enough ${match.group(1)} — only ${match.group(2)} '
+            'in stock (you need ${match.group(3)}).';
+      }
+      return 'Not enough stock for one of the items. '
+          'Check availability and try again.';
+    }
+    return msg;
   }
 
   void _resetForm() {
@@ -480,7 +533,13 @@ class _SaleFormState extends State<SaleForm> {
                           child: Text(b['name'] as String),
                         ),
                     ],
-                    onChanged: (v) => setState(() => _branchId = v),
+                    onChanged: (v) {
+                      setState(() {
+                        _branchId = v;
+                        _stock = {};
+                      });
+                      if (v != null) _loadStock(v);
+                    },
                   ),
                 ),
               ],
@@ -578,34 +637,55 @@ class _SaleFormState extends State<SaleForm> {
                 itemBuilder: (context, i) {
                   final product = _filteredProducts[i];
                   final inCart = _items.any((it) => it.product.id == product.id);
+                  final available = _availableFor(product.id);
+                  final isService =
+                      product.productType == ProductType.service;
+                  final outOfStock = !isService && available <= 0;
                   return ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                     leading: Icon(
                       product.productType.icon,
                       size: 20,
-                      color: AppColors.primary,
+                      color: outOfStock
+                          ? AppColors.textSecondary
+                          : AppColors.primary,
                     ),
                     title: Text(
                       product.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
+                        color: outOfStock
+                            ? AppColors.textSecondary
+                            : AppColors.textPrimary,
                       ),
                     ),
                     subtitle: Text(
-                      AppFormatters.kes(product.salePrice),
-                      style: const TextStyle(fontSize: 11.5),
+                      isService
+                          ? AppFormatters.kes(product.salePrice)
+                          : '${AppFormatters.kes(product.salePrice)} · '
+                              'avail $available',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: outOfStock
+                            ? AppColors.danger
+                            : AppColors.textSecondary,
+                        fontWeight:
+                            outOfStock ? FontWeight.w700 : FontWeight.w400,
+                      ),
                     ),
                     trailing: IconButton(
-                      onPressed: () => _addProduct(product),
+                      onPressed: outOfStock ? null : () => _addProduct(product),
                       icon: Icon(
                         inCart ? Icons.add_circle : Icons.add_circle_outline,
-                        color: inCart
-                            ? AppColors.success
-                            : AppColors.primary,
+                        color: outOfStock
+                            ? AppColors.textSecondary
+                            : inCart
+                                ? AppColors.success
+                                : AppColors.primary,
                       ),
                     ),
                   );
@@ -683,7 +763,22 @@ class _SaleFormState extends State<SaleForm> {
               Text('${item.quantity}'),
               IconButton(
                 visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() => item.quantity++),
+                onPressed: () => setState(() {
+                  final available = _availableFor(item.product.id);
+                  final isService =
+                      item.product.productType == ProductType.service;
+                  if (isService || item.quantity < available) {
+                    item.quantity++;
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            'Only $available of ${item.product.name} '
+                            'available.'),
+                      ),
+                    );
+                  }
+                }),
                 icon: const Icon(Icons.add_circle_outline, size: 20),
               ),
               SizedBox(

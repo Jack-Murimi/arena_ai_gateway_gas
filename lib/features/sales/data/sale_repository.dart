@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/utils/num_parse.dart';
 import '../../customers/models/customer.dart';
 import '../../inventory/models/product.dart';
 import '../../riders/data/rider_repository.dart';
@@ -19,6 +20,18 @@ class SaleRepository {
         .order('size_kg', nullsFirst: false)
         .order('name');
     return rows.map(Product.fromMap).toList();
+  }
+
+  /// Current stock quantities per product for a branch.
+  Future<Map<String, int>> fetchStockMap(String branchId) async {
+    final rows = await _db
+        .from('branch_stock_summary')
+        .select('product_id, quantity')
+        .eq('branch_id', branchId);
+    return {
+      for (final r in rows)
+        (r['product_id'] as String?) ?? '': parseInt(r['quantity']) ?? 0,
+    };
   }
 
   Future<List<Map<String, dynamic>>> fetchBranches() async {

@@ -25,6 +25,7 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
 
   List<SupplierInvoice> _invoices = [];
   List<SupplierPayment> _payments = [];
+  List<SupplierReturn> _returns = [];
   bool _loading = true;
   String? _error;
 
@@ -42,10 +43,12 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
     try {
       final invoices = await _repo.fetchInvoices(widget.supplier.id);
       final payments = await _repo.fetchPayments(widget.supplier.id);
+      final returns = await _repo.fetchReturns(widget.supplier.id);
       if (!mounted) return;
       setState(() {
         _invoices = invoices;
         _payments = payments;
+        _returns = returns;
         _loading = false;
       });
     } catch (e) {
@@ -197,6 +200,8 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
                       const SizedBox(height: 16),
                     ],
                     _invoicesSection(),
+                    const SizedBox(height: 16),
+                    _returnsSection(),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -304,6 +309,17 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
                 ),
               ],
             ),
+            if (s.returnsTotal > 0) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Returns (credit): ${AppFormatters.kes(s.returnsTotal)}',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.success,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -449,6 +465,87 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
         else
           for (final invoice in _invoices) ...[
             _invoiceTile(invoice),
+            const SizedBox(height: 6),
+          ],
+      ],
+    );
+  }
+
+  Widget _returnsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Returns (${_returns.length})',
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_returns.isEmpty)
+          const Text(
+            'No returns recorded.',
+            style: TextStyle(color: AppColors.textSecondary),
+          )
+        else
+          for (final r in _returns) ...[
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.returnNo,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                          Text(
+                            [
+                              if (r.returnDate != null)
+                                AppFormatters.date(r.returnDate!),
+                              r.reason.replaceAll('_', ' ').toUpperCase(),
+                              r.branchName ?? '',
+                            ].where((s) => s.isNotEmpty).join(' · '),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          if (r.itemsSummary != null &&
+                              r.itemsSummary!.isNotEmpty)
+                            Text(
+                              r.itemsSummary!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 11.5),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '-${AppFormatters.kes(r.totalAmount)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 6),
           ],
       ],

@@ -10,6 +10,7 @@ class SupplierSummary {
     this.isActive = true,
     this.invoicedTotal = 0,
     this.paidTotal = 0,
+    this.returnsTotal = 0,
     this.balance = 0,
   });
 
@@ -20,6 +21,7 @@ class SupplierSummary {
   final bool isActive;
   final double invoicedTotal;
   final double paidTotal;
+  final double returnsTotal;
   final double balance; // >0 = we owe the supplier
 
   bool get owes => balance > 0.001;
@@ -40,7 +42,78 @@ class SupplierSummary {
         isActive: map['is_active'] as bool? ?? true,
         invoicedTotal: parseDouble(map['invoiced_total']) ?? 0,
         paidTotal: parseDouble(map['paid_total']) ?? 0,
+        returnsTotal: parseDouble(map['returns_total']) ?? 0,
         balance: parseDouble(map['balance']) ?? 0,
+      );
+}
+
+/// A return of damaged goods to a supplier (supplier_returns_view).
+class SupplierReturn {
+  const SupplierReturn({
+    required this.id,
+    required this.returnNo,
+    this.branchName,
+    this.returnDate,
+    this.reason = 'damaged',
+    this.totalAmount = 0,
+    this.notes,
+    this.itemCount = 0,
+    this.itemsSummary,
+  });
+
+  final String id;
+  final String returnNo;
+  final String? branchName;
+  final DateTime? returnDate;
+  final String reason;
+  final double totalAmount;
+  final String? notes;
+  final int itemCount;
+  final String? itemsSummary;
+
+  factory SupplierReturn.fromMap(Map<String, dynamic> map) => SupplierReturn(
+        id: map['id'] as String,
+        returnNo: (map['return_no'] as String?) ?? '',
+        branchName: map['branch_name'] as String?,
+        returnDate: map['return_date'] != null
+            ? DateTime.tryParse(map['return_date'] as String)
+            : null,
+        reason: (map['reason'] as String?) ?? 'damaged',
+        totalAmount: parseDouble(map['total_amount']) ?? 0,
+        notes: map['notes'] as String?,
+        itemCount: parseInt(map['item_count']) ?? 0,
+        itemsSummary: map['items_summary'] as String?,
+      );
+}
+
+/// A supplier's latest quoted unit cost for a product.
+class SupplierProductPrice {
+  const SupplierProductPrice({
+    required this.supplierId,
+    required this.supplierName,
+    required this.productId,
+    this.productName,
+    this.unitCost = 0,
+    this.updatedAt,
+  });
+
+  final String supplierId;
+  final String supplierName;
+  final String productId;
+  final String? productName;
+  final double unitCost;
+  final DateTime? updatedAt;
+
+  factory SupplierProductPrice.fromMap(Map<String, dynamic> map) =>
+      SupplierProductPrice(
+        supplierId: (map['supplier_id'] as String?) ?? '',
+        supplierName: (map['supplier_name'] as String?) ?? '',
+        productId: (map['product_id'] as String?) ?? '',
+        productName: map['product_name'] as String?,
+        unitCost: parseDouble(map['unit_cost']) ?? 0,
+        updatedAt: map['updated_at'] != null
+            ? DateTime.tryParse(map['updated_at'] as String)
+            : null,
       );
 }
 
