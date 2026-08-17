@@ -7,6 +7,7 @@ class SupplierSummary {
     required this.name,
     this.phone,
     this.contactPerson,
+    this.isActive = true,
     this.invoicedTotal = 0,
     this.paidTotal = 0,
     this.balance = 0,
@@ -16,6 +17,7 @@ class SupplierSummary {
   final String name;
   final String? phone;
   final String? contactPerson;
+  final bool isActive;
   final double invoicedTotal;
   final double paidTotal;
   final double balance; // >0 = we owe the supplier
@@ -35,6 +37,7 @@ class SupplierSummary {
         name: (map['name'] as String?) ?? '',
         phone: map['phone'] as String?,
         contactPerson: map['contact_person'] as String?,
+        isActive: map['is_active'] as bool? ?? true,
         invoicedTotal: parseDouble(map['invoiced_total']) ?? 0,
         paidTotal: parseDouble(map['paid_total']) ?? 0,
         balance: parseDouble(map['balance']) ?? 0,

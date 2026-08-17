@@ -86,6 +86,17 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
     _load();
   }
 
+  Future<void> _edit() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SupplierFormPage(supplier: widget.supplier),
+      ),
+    );
+    if (saved == true && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   Future<void> _archive() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -131,6 +142,11 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
       appBar: AppBar(
         title: Text(widget.supplier.name),
         actions: [
+          IconButton(
+            tooltip: 'Edit supplier',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: _edit,
+          ),
           IconButton(
             tooltip: 'Archive supplier',
             icon: const Icon(Icons.archive_outlined),

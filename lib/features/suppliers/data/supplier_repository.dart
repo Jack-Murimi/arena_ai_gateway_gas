@@ -37,6 +37,13 @@ class SupplierRepository {
     });
   }
 
+  /// Hard-deletes an invoice + its items, reversing posted stock.
+  Future<void> deleteInvoice(String invoiceId) async {
+    await _db.rpc('admin_delete_supplier_invoice', params: {
+      'p_invoice_id': invoiceId,
+    });
+  }
+
   Future<List<SupplierInvoice>> fetchInvoices(String supplierId) async {
     final rows = await _db
         .from('supplier_invoices_view')

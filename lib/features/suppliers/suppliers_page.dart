@@ -17,8 +17,10 @@ class SuppliersPage extends StatefulWidget {
 
 class _SuppliersPageState extends State<SuppliersPage> {
   final _repo = SupplierRepository();
+  final _searchCtrl = TextEditingController();
 
   List<SupplierSummary> _suppliers = [];
+  String _statusFilter = 'all'; // all | active | archived
   bool _loading = true;
   String? _error;
 
@@ -26,6 +28,12 @@ class _SuppliersPageState extends State<SuppliersPage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -49,9 +57,26 @@ class _SuppliersPageState extends State<SuppliersPage> {
     }
   }
 
-  Future<void> _openForm() async {
+  List<SupplierSummary> get _filtered {
+    final term = _searchCtrl.text.trim().toLowerCase();
+    return _suppliers.where((s) {
+      final matchesStatus = switch (_statusFilter) {
+        'active' => s.isActive,
+        'archived' => !s.isActive,
+        _ => true,
+      };
+      if (!matchesStatus) return false;
+      if (term.isEmpty) return true;
+      return s.name.toLowerCase().contains(term);
+    }).toList();
+  }
+
+  Future<void> _openForm({SupplierSummary? supplier}) async {
     final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const SupplierFormPage()),
+      MaterialPageRoute(
+        builder: (_) =>
+            supplier == null ? const SupplierFormPage() : SupplierFormPage(supplier: supplier),
+      ),
     );
     if (saved == true) _load();
   }
@@ -67,13 +92,60 @@ class _SuppliersPageState extends State<SuppliersPage> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildBody(),
+        Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: 'Search suppliers…',
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  for (final (value, label) in [
+                    ('all', 'All'),
+                    ('active', 'Active'),
+                    ('archived', 'Archived'),
+                  ]) ...[
+                    if (value != 'all') const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: _statusFilter == value,
+                      onSelected: (_) => setState(() => _statusFilter = value),
+                      selectedColor: AppColors.primary,
+                      labelStyle: TextStyle(
+                        color: _statusFilter == value
+                            ? Colors.white
+                            : AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                      ),
+                      backgroundColor: AppColors.surface,
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
         Positioned(
           right: 24,
           bottom: 24,
           child: FloatingActionButton.extended(
             heroTag: 'add-supplier',
-            onPressed: _openForm,
+            onPressed: () => _openForm(),
             icon: const Icon(Icons.add_business_outlined),
             label: const Text('New supplier'),
           ),
@@ -120,14 +192,23 @@ class _SuppliersPageState extends State<SuppliersPage> {
         ),
       );
     }
+    final filtered = _filtered;
+    if (filtered.isEmpty) {
+      return const Center(
+        child: Text(
+          'No suppliers match this filter.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+      );
+    }
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-        itemCount: _suppliers.length,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+        itemCount: filtered.length,
         separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (context, i) => _supplierTile(_suppliers[i]),
+        itemBuilder: (context, i) => _supplierTile(filtered[i]),
       ),
     );
   }
@@ -135,6 +216,7 @@ class _SuppliersPageState extends State<SuppliersPage> {
   Widget _supplierTile(SupplierSummary supplier) {
     return Card(
       margin: EdgeInsets.zero,
+      color: supplier.isActive ? null : AppColors.surface.withValues(alpha: 0.6),
       child: InkWell(
         onTap: () => _openDetail(supplier),
         borderRadius: BorderRadius.circular(12),
@@ -160,15 +242,19 @@ class _SuppliersPageState extends State<SuppliersPage> {
                       supplier.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
+                        color: supplier.isActive
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
                       ),
                     ),
                     Text(
                       [
                         supplier.phone ?? '',
                         supplier.contactPerson ?? '',
+                        if (!supplier.isActive) 'Archived',
                       ].where((s) => s.isNotEmpty).join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

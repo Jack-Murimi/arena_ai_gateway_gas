@@ -29,6 +29,51 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     _load();
   }
 
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete invoice?'),
+        content: Text(
+          '${widget.invoice.invoiceNo} will be permanently deleted and '
+          'the stock posted to ${widget.invoice.branchName ?? 'the branch'} '
+          'will be reversed.\n\nPayments already recorded stay on the '
+          'supplier\'s account.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _repo.deleteInvoice(widget.invoice.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${widget.invoice.invoiceNo} deleted')),
+      );
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -67,7 +112,16 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     };
 
     return Scaffold(
-      appBar: AppBar(title: Text(invoice.invoiceNo)),
+      appBar: AppBar(
+        title: Text(invoice.invoiceNo),
+        actions: [
+          IconButton(
+            tooltip: 'Delete invoice',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _delete,
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
