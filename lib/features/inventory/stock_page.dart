@@ -121,7 +121,7 @@ class _StockPageState extends State<StockPage> {
     if (_branchId == null) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => StockInitPage(
+        builder: (_) => StockReconciliationPage(
           branchId: _branchId!,
           branchName: _branchName,
         ),

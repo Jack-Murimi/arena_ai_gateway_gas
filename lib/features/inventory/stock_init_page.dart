@@ -50,7 +50,6 @@ class _ReconLine {
 
 class _StockReconciliationPageState extends State<StockReconciliationPage> {
   final _stockRepo = StockRepository();
-  final _productRepo = ProductRepository();
 
   DateTime _reconDate = DateTime.now();
   List<StockItem> _current = [];
