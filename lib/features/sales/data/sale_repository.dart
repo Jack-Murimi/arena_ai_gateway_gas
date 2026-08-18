@@ -68,6 +68,7 @@ class SaleRepository {
     required double amountPaid,
     String? mpesaCode,
     String? note,
+    List<Map<String, dynamic>> cylindersLeft = const [],
   }) async {
     final data = await _db.rpc('record_sale', params: {
       'p_sale_date': saleDate.toIso8601String().substring(0, 10),
@@ -80,6 +81,7 @@ class SaleRepository {
       'p_amount_paid': amountPaid,
       'p_mpesa_code': mpesaCode,
       'p_note': note,
+      'p_cylinders_left': cylindersLeft,
     });
     return Map<String, dynamic>.from(data as Map);
   }

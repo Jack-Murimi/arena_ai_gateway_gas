@@ -33,6 +33,21 @@ class _LineItem {
   void dispose() => priceCtrl.dispose();
 }
 
+/// A cylinder left with the customer during this sale (optional).
+class _LeftCylinder {
+  _LeftCylinder({
+    required this.productId,
+    required this.productName,
+    this.quantity = 1,
+    DateTime? followUpDate,
+  }) : followUpDate = followUpDate ?? DateTime.now().add(const Duration(days: 7));
+
+  final String productId;
+  final String productName;
+  int quantity;
+  DateTime followUpDate;
+}
+
 class SaleForm extends StatefulWidget {
   const SaleForm({super.key, required this.onSaved});
 
@@ -55,6 +70,7 @@ class _SaleFormState extends State<SaleForm> {
   List<RiderSummary> _riders = [];
 
   final List<_LineItem> _items = [];
+  final List<_LeftCylinder> _leftCylinders = [];
   List<RiderSummary> _selectedRiders = [];
 
   DateTime _saleDate = DateTime.now();
@@ -253,6 +269,15 @@ class _SaleFormState extends State<SaleForm> {
             },
         ],
         riderIds: [for (final r in _selectedRiders) r.id],
+        cylindersLeft: [
+          for (final lc in _leftCylinders)
+            {
+              'product_id': lc.productId,
+              'quantity': lc.quantity,
+              'follow_up_date':
+                  lc.followUpDate.toIso8601String().substring(0, 10),
+            },
+        ],
         paymentMethod: asInvoice ? 'credit' : _methods[_paymentMethod],
         amountPaid: amountPaid,
         mpesaCode: _mpesaCtrl.text.trim().isEmpty
@@ -294,6 +319,7 @@ class _SaleFormState extends State<SaleForm> {
       item.dispose();
     }
     _items.clear();
+    _leftCylinders.clear();
     _selectedRiders.clear();
     _amountPaidCtrl.clear();
     _mpesaCtrl.clear();
@@ -443,6 +469,8 @@ class _SaleFormState extends State<SaleForm> {
         _productsCard(),
         const SizedBox(height: 12),
         _itemsCard(),
+        const SizedBox(height: 12),
+        _leftCylindersCard(),
         const SizedBox(height: 12),
         _ridersCard(),
         const SizedBox(height: 12),
@@ -751,6 +779,34 @@ class _SaleFormState extends State<SaleForm> {
           ),
           if (item.isRefill) ...[
             const SizedBox(height: 6),
+            if (_hasExchangeMismatch(item))
+              Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.flag_outlined,
+                        size: 15, color: AppColors.warning),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Different brand/size exchange — this will be '
+                        'flagged for review.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Row(
               children: [
                 const Icon(Icons.cyclone_outlined,
@@ -805,6 +861,93 @@ class _SaleFormState extends State<SaleForm> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  bool _hasExchangeMismatch(_LineItem item) {
+    final ret = item.returnCylinder;
+    if (ret == null) return false;
+    return item.product.brand != ret.brand || item.product.sizeKg != ret.sizeKg;
+  }
+
+  Future<void> _addLeftCylinder() async {
+    final picked = await showModalBottomSheet<_LeftCylinder>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => LeftCylinderSheet(
+        cylinders: _products
+            .where((p) => p.productType == ProductType.cylinder)
+            .toList(),
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() => _leftCylinders.add(picked));
+    }
+  }
+
+  Widget _leftCylindersCard() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionTitle(
+              'Cylinder left with customer (optional)',
+              Icons.cyclone_outlined,
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Only if you left a cylinder behind — we log who has it, '
+              'who left it and when to collect it.',
+              style: TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            if (_leftCylinders.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  'None.',
+                  style: TextStyle(
+                      fontSize: 12.5, color: AppColors.textSecondary),
+                ),
+              )
+            else
+              for (final lc in _leftCylinders)
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.cyclone,
+                      size: 20, color: AppColors.primary),
+                  title: Text(
+                    '${lc.productName} x${lc.quantity}',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    'Collect by ${AppFormatters.date(lc.followUpDate)}',
+                    style: const TextStyle(fontSize: 11.5),
+                  ),
+                  trailing: IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => setState(() => _leftCylinders.remove(lc)),
+                    icon: const Icon(Icons.delete_outline,
+                        color: AppColors.danger, size: 20),
+                  ),
+                ),
+            OutlinedButton.icon(
+              onPressed: _addLeftCylinder,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text(
+                'Add cylinder left',
+                style: TextStyle(fontSize: 13),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1566,6 +1709,122 @@ class _RiderPickerSheetState extends State<RiderPickerSheet> {
           ],
         );
       },
+    );
+  }
+}
+
+/// Bottom sheet: pick a cylinder + qty + follow-up date to log one left
+/// with the customer during this sale.
+class LeftCylinderSheet extends StatefulWidget {
+  const LeftCylinderSheet({super.key, required this.cylinders});
+
+  final List<Product> cylinders;
+
+  @override
+  State<LeftCylinderSheet> createState() => _LeftCylinderSheetState();
+}
+
+class _LeftCylinderSheetState extends State<LeftCylinderSheet> {
+  Product? _selected;
+  int _qty = 1;
+  DateTime _followUp = DateTime.now().add(const Duration(days: 7));
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          20, 20, 20, 24 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Cylinder left with customer',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Cylinder *',
+              isDense: true,
+            ),
+            hint: const Text('Select cylinder'),
+            items: [
+              for (final c in widget.cylinders)
+                DropdownMenuItem(
+                  value: c.id,
+                  child:
+                      Text(c.name, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: (v) => setState(() {
+              _selected = v == null
+                  ? null
+                  : widget.cylinders.firstWhere((c) => c.id == v);
+            }),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Text('Quantity',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const Spacer(),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() {
+                  if (_qty > 1) _qty--;
+                }),
+                icon: const Icon(Icons.remove_circle_outline, size: 22),
+              ),
+              Text(
+                '$_qty',
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() => _qty++),
+                icon: const Icon(Icons.add_circle_outline, size: 22),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _followUp,
+                firstDate: DateTime.now(),
+                lastDate:
+                    DateTime.now().add(const Duration(days: 365)),
+              );
+              if (picked != null) {
+                setState(() => _followUp = picked);
+              }
+            },
+            icon: const Icon(Icons.event_outlined, size: 18),
+            label: Text(
+              'Collect by ${AppFormatters.date(_followUp)}',
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              final product = _selected;
+              if (product == null) return;
+              Navigator.of(context).pop(_LeftCylinder(
+                productId: product.id,
+                productName: product.name,
+                quantity: _qty,
+                followUpDate: _followUp,
+              ));
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add to sale'),
+          ),
+        ],
+      ),
     );
   }
 }

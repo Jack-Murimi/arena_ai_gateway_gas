@@ -15,6 +15,8 @@ import '../sales/sales_page.dart';
 import '../settings/settings_page.dart';
 import '../suppliers/supplier_prices_page.dart';
 import '../suppliers/suppliers_page.dart';
+import '../cylinders/cylinder_tracking_page.dart';
+import '../cylinders/exchange_alerts_page.dart';
 
 /// Main authenticated shell: navigation rail on wide screens,
 /// bottom navigation bar on phones, and a hamburger drawer that
@@ -58,10 +60,6 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _buildDrawer(BuildContext context) {
-            final futureItems = <(IconData, String)>[
-              (Icons.cyclone_outlined, 'Cylinder deposits'),
-            ];
-
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -129,16 +127,18 @@ class _HomeShellState extends State<HomeShell> {
               'Riders',
               () => _openDrawerScreen(const RidersPage(), 'Riders'),
             ),
-            _sectionHeader('Coming soon'),
-            for (final (icon, label) in futureItems)
-              ListTile(
-                leading: Icon(icon, color: AppColors.textSecondary),
-                title: Text(
-                  label,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-                enabled: false,
-              ),
+            _drawerTile(
+              Icons.cyclone_outlined,
+              'Cylinder tracking',
+              () => _openDrawerScreen(
+                  const CylinderTrackingPage(), 'Cylinder tracking'),
+            ),
+            _drawerTile(
+              Icons.flag_outlined,
+              'Cylinder follow-ups',
+              () => _openDrawerScreen(
+                  const ExchangeAlertsPage(), 'Cylinder follow-ups'),
+            ),
             const Spacer(),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.danger),
