@@ -145,7 +145,9 @@ begin
       insert into public.stock_movements
         (branch_id, product_id, quantity_change, movement_type, note, created_by)
       values (p_branch_id, v_pid, v_delta, 'opening',
-              'Stock init ' || to_char(now(), 'FMMonth YYYY'), auth.uid());
+              'Reconciliation ' || to_char(now(), 'YYYY-MM-DD') ||
+              ' (was ' || v_old || ', counted ' || v_qty || ')',
+              auth.uid());
     end if;
   end loop;
 end;
