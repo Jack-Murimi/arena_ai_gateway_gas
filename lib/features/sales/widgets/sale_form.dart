@@ -54,7 +54,7 @@ class _SaleFormState extends State<SaleForm> {
   List<RiderSummary> _riders = [];
 
   final List<_LineItem> _items = [];
-  final List<RiderSummary> _selectedRiders = [];
+  List<RiderSummary> _selectedRiders = [];
 
   DateTime _saleDate = DateTime.now();
   String? _branchId;
@@ -138,42 +138,6 @@ class _SaleFormState extends State<SaleForm> {
   // -------------------------------------------------------------------------
   // Items
   // -------------------------------------------------------------------------
-
-  void _addProduct(Product product) {
-    final available = _availableFor(product.id);
-    if (available <= 0 && product.productType != ProductType.service) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${product.name} is out of stock '
-              '(available: $available)'),
-        ),
-      );
-      return;
-    }
-    setState(() {
-      final existing = _items.where((i) => i.product.id == product.id);
-      if (existing.isNotEmpty) {
-        final item = existing.first;
-        if (item.quantity < available ||
-            product.productType == ProductType.service) {
-          item.quantity++;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                  'Only $available of ${product.name} available.'),
-            ),
-          );
-        }
-      } else {
-        final item = _LineItem(product: product);
-        if (item.isRefill) {
-          item.returnCylinder = _defaultReturnCylinder(product);
-        }
-        _items.add(item);
-      }
-    });
-  }
 
   /// Default returned cylinder for a refill: same brand + size; else size.
   Product? _defaultReturnCylinder(Product refill) {

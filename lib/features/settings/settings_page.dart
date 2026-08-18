@@ -18,7 +18,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   List<Map<String, dynamic>> _branches = [];
   String? _branchId;
-  bool _loadingBranches = true;
   bool _savingBranch = false;
 
   @override
@@ -36,11 +35,9 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() {
         _branches = branches;
         _branchId = auth.branchId;
-        _loadingBranches = false;
       });
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingBranches = false);
+      // branches unavailable — dropdown stays empty
     }
   }
 
@@ -51,11 +48,12 @@ class _SettingsPageState extends State<SettingsPage> {
       _savingBranch = true;
       _branchId = branchId;
     });
+    final auth = context.read<AuthController>();
     try {
       await _supabase
           .from('profiles')
           .update({'branch_id': branchId}).eq('id', uid);
-      await context.read<AuthController>().refreshProfile();
+      await auth.refreshProfile();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
