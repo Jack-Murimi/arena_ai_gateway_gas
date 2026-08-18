@@ -15,6 +15,7 @@ import '../sales/sales_page.dart';
 import '../settings/settings_page.dart';
 import '../suppliers/supplier_prices_page.dart';
 import '../suppliers/suppliers_page.dart';
+import '../cylinders/cylinder_fleet_page.dart';
 import '../cylinders/cylinder_tracking_page.dart';
 import '../cylinders/exchange_alerts_page.dart';
 
@@ -126,6 +127,12 @@ class _HomeShellState extends State<HomeShell> {
               Icons.two_wheeler_outlined,
               'Riders',
               () => _openDrawerScreen(const RidersPage(), 'Riders'),
+            ),
+            _drawerTile(
+              Icons.cyclone_outlined,
+              'Cylinder fleet',
+              () => _openDrawerScreen(
+                  const CylinderFleetPage(), 'Cylinder fleet'),
             ),
             _drawerTile(
               Icons.cyclone_outlined,

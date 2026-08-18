@@ -779,6 +779,34 @@ class _SaleFormState extends State<SaleForm> {
           ),
           if (item.isRefill) ...[
             const SizedBox(height: 6),
+            if (item.returnCylinder == null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.error_outline,
+                        size: 15, color: AppColors.danger),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'No empty returned — fleet reduces by this '
+                        'quantity and it will be flagged for follow-up.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (_hasExchangeMismatch(item))
               Container(
                 margin: const EdgeInsets.only(bottom: 6),

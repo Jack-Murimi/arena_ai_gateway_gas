@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
+import '../auth/auth_controller.dart';
 import '../customers/data/customer_repository.dart';
 import '../customers/models/customer.dart';
 import '../inventory/models/product.dart';
@@ -391,6 +393,8 @@ class _LogCylinderLeftPageState extends State<_LogCylinderLeftPage> {
       _error = null;
     });
     try {
+      final branchId =
+          context.read<AuthController>().branchId;
       await _repo.logCylinderLeft(
         customerId: _customerId!,
         locationId: _locationId,
@@ -398,6 +402,7 @@ class _LogCylinderLeftPageState extends State<_LogCylinderLeftPage> {
         quantity: _qty,
         followUpDate: _followUp,
         note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+        branchId: branchId,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);

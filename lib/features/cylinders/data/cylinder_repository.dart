@@ -28,6 +28,7 @@ class CylinderRepository {
     required int quantity,
     DateTime? followUpDate,
     String? note,
+    String? branchId,
   }) async {
     await _db.rpc('log_cylinder_left', params: {
       'p_customer_id': customerId,
@@ -38,6 +39,7 @@ class CylinderRepository {
           ?.toIso8601String()
           .substring(0, 10),
       'p_note': note,
+      'p_branch_id': branchId,
     });
   }
 
