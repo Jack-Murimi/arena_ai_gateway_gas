@@ -80,10 +80,8 @@ class _SupplierPricesPageState extends State<SupplierPricesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Supplier prices')),
-      body: Column(
-        children: [
+    return Column(
+      children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: Card(
@@ -109,7 +107,6 @@ class _SupplierPricesPageState extends State<SupplierPricesPage> {
           ),
           Expanded(child: _buildBody()),
         ],
-      ),
     );
   }
 

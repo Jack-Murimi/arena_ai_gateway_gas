@@ -89,19 +89,10 @@ class _CylinderTrackingPageState extends State<CylinderTrackingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cylinder tracking'),
-        actions: [
-          IconButton(
-            tooltip: 'Log cylinder left',
-            icon: const Icon(Icons.add),
-            onPressed: _logLeft,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
+    return Stack(
+      children: [
+        Column(
+          children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
@@ -133,9 +124,20 @@ class _CylinderTrackingPageState extends State<CylinderTrackingPage> {
               ],
             ),
           ),
-          Expanded(child: _buildBody()),
-        ],
-      ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+        Positioned(
+          right: 24,
+          bottom: 24,
+          child: FloatingActionButton(
+            heroTag: 'log-cylinder-left',
+            tooltip: 'Log cylinder left',
+            onPressed: _logLeft,
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ],
     );
   }
 

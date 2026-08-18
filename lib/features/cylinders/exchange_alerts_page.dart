@@ -96,10 +96,8 @@ class _ExchangeAlertsPageState extends State<ExchangeAlertsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Cylinder follow-ups')),
-      body: Column(
-        children: [
+    return Column(
+      children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
@@ -133,7 +131,6 @@ class _ExchangeAlertsPageState extends State<ExchangeAlertsPage> {
           ),
           Expanded(child: _buildBody()),
         ],
-      ),
     );
   }
 

@@ -88,22 +88,14 @@ class _CylinderFleetPageState extends State<CylinderFleetPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cylinder fleet'),
-        actions: [
-          IconButton(
-            tooltip: 'Movement history',
-            icon: const Icon(Icons.history),
-            onPressed: _openMovements,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: DropdownButtonFormField<String?>(
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String?>(
               initialValue: _branchId,
               isExpanded: true,
               decoration: const InputDecoration(
@@ -121,15 +113,22 @@ class _CylinderFleetPageState extends State<CylinderFleetPage> {
                     child: Text(b['name'] as String),
                   ),
               ],
-              onChanged: (v) {
-                setState(() => _branchId = v);
-                _loadFleet();
-              },
+                onChanged: (v) {
+                  setState(() => _branchId = v);
+                  _loadFleet();
+                },
+              ),
             ),
-          ),
-          Expanded(child: _buildBody()),
-        ],
-      ),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: 'Movement history',
+              icon: const Icon(Icons.history),
+              onPressed: _openMovements,
+            ),
+          ],
+        ),
+        Expanded(child: _buildBody()),
+      ],
     );
   }
 
