@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:arena_ai_gateway_gas/features/reports/reports_page.dart';
+import 'package:arena_ai_gateway_gas/core/widgets/feature_placeholder.dart';
 
 void main() {
   testWidgets('FeaturePlaceholder renders in short landscape viewport',
@@ -14,7 +14,11 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: ReportsPage(),
+          body: FeaturePlaceholder(
+            icon: Icons.bar_chart,
+            title: 'Reports',
+            description: 'Test',
+          ),
         ),
       ),
     );
