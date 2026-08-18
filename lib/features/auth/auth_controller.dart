@@ -81,6 +81,9 @@ class AuthController extends ChangeNotifier {
     return _client.auth.signInWithPassword(email: email, password: password);
   }
 
+  /// Reload the profile row (e.g. after changing the default branch).
+  Future<void> refreshProfile() => _loadProfile();
+
   Future<void> signOut() => _client.auth.signOut();
 
   @override

@@ -43,7 +43,6 @@ class SaleForm extends StatefulWidget {
 
 class _SaleFormState extends State<SaleForm> {
   final _repo = SaleRepository();
-  final _searchCtrl = TextEditingController();
   final _amountPaidCtrl = TextEditingController();
   final _mpesaCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
@@ -91,7 +90,6 @@ class _SaleFormState extends State<SaleForm> {
 
   @override
   void dispose() {
-    _searchCtrl.dispose();
     _amountPaidCtrl.dispose();
     _mpesaCtrl.dispose();
     _noteCtrl.dispose();
@@ -124,9 +122,6 @@ class _SaleFormState extends State<SaleForm> {
         _branchId = branches.any((b) => b['id'] == profileBranchId)
             ? profileBranchId
             : (branches.isNotEmpty ? branches.first['id'] as String : null);
-        if (riders.isNotEmpty) {
-          _selectedRiders.add(riders.first); // default: one rider
-        }
         _loading = false;
       });
       final branchId = _branchId;
@@ -202,12 +197,34 @@ class _SaleFormState extends State<SaleForm> {
     return match;
   }
 
-  List<Product> get _filteredProducts {
-    final term = _searchCtrl.text.trim().toLowerCase();
-    if (term.isEmpty) return _products;
-    return _products
-        .where((p) => p.name.toLowerCase().contains(term))
-        .toList();
+  /// Opens the add-product bottom sheet: search -> pick -> qty + price.
+  Future<void> _addProductFlow() async {
+    final picked = await showModalBottomSheet<_PickedProduct>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => AddProductSheet(
+        products: _products,
+        stock: _stock,
+      ),
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      final existing =
+          _items.where((i) => i.product.id == picked.product.id);
+      if (existing.isNotEmpty) {
+        existing.first.quantity = picked.quantity;
+        existing.first.priceCtrl.text = picked.priceText;
+      } else {
+        final item = _LineItem(product: picked.product)
+          ..quantity = picked.quantity;
+        item.priceCtrl.text = picked.priceText;
+        if (item.isRefill) {
+          item.returnCylinder = _defaultReturnCylinder(picked.product);
+        }
+        _items.add(item);
+      }
+    });
   }
 
   double get _total =>
@@ -313,7 +330,6 @@ class _SaleFormState extends State<SaleForm> {
     }
     _items.clear();
     _selectedRiders.clear();
-    if (_riders.isNotEmpty) _selectedRiders.add(_riders.first);
     _amountPaidCtrl.clear();
     _mpesaCtrl.clear();
     _noteCtrl.clear();
@@ -611,97 +627,31 @@ class _SaleFormState extends State<SaleForm> {
   Widget _productsCard() {
     return Card(
       margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionTitle('Add products', Icons.add_shopping_cart_outlined),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _searchCtrl,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                hintText: 'Search products…',
-                prefixIcon: Icon(Icons.search),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 220),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: _filteredProducts.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, i) {
-                  final product = _filteredProducts[i];
-                  final inCart = _items.any((it) => it.product.id == product.id);
-                  final available = _availableFor(product.id);
-                  final isService =
-                      product.productType == ProductType.service;
-                  final outOfStock = !isService && available <= 0;
-                  return ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      product.productType.icon,
-                      size: 20,
-                      color: outOfStock
-                          ? AppColors.textSecondary
-                          : AppColors.primary,
-                    ),
-                    title: Text(
-                      product.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: outOfStock
-                            ? AppColors.textSecondary
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                    subtitle: Text(
-                      isService
-                          ? AppFormatters.kes(product.salePrice)
-                          : '${AppFormatters.kes(product.salePrice)} · '
-                              'avail $available',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: outOfStock
-                            ? AppColors.danger
-                            : AppColors.textSecondary,
-                        fontWeight:
-                            outOfStock ? FontWeight.w700 : FontWeight.w400,
-                      ),
-                    ),
-                    trailing: IconButton(
-                      onPressed: outOfStock ? null : () => _addProduct(product),
-                      icon: Icon(
-                        inCart ? Icons.add_circle : Icons.add_circle_outline,
-                        color: outOfStock
-                            ? AppColors.textSecondary
-                            : inCart
-                                ? AppColors.success
-                                : AppColors.primary,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+      child: ListTile(
+        onTap: _addProductFlow,
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.add_shopping_cart_outlined,
+              color: AppColors.primary),
         ),
+        title: const Text(
+          'Add product',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+        ),
+        subtitle: const Text(
+          'Search the catalogue, set quantity & price',
+          style: TextStyle(fontSize: 12.5),
+        ),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }
 
   Widget _itemsCard() {
-    if (_items.isEmpty) {
-      return const SizedBox.shrink();
-    }
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -709,8 +659,22 @@ class _SaleFormState extends State<SaleForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionTitle('Items', Icons.shopping_cart_outlined),
+            _sectionTitle(
+              _items.isEmpty
+                  ? 'Products being sold'
+                  : 'Products being sold (${_items.length})',
+              Icons.shopping_cart_outlined,
+            ),
             const SizedBox(height: 8),
+            if (_items.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'No products added yet — tap "Add product" to start.',
+                  style: TextStyle(
+                      fontSize: 12.5, color: AppColors.textSecondary),
+                ),
+              ),
             for (final item in _items) _lineItemTile(item),
             const Divider(height: 20),
             Row(
@@ -865,6 +829,21 @@ class _SaleFormState extends State<SaleForm> {
     );
   }
 
+  Future<void> _pickRiders() async {
+    final ids = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => RiderPickerSheet(
+        riders: _riders,
+        selectedIds: {for (final r in _selectedRiders) r.id},
+      ),
+    );
+    if (ids == null || !mounted) return;
+    setState(() {
+      _selectedRiders = _riders.where((r) => ids.contains(r.id)).toList();
+    });
+  }
+
   Widget _ridersCard() {
     return Card(
       margin: EdgeInsets.zero,
@@ -899,65 +878,52 @@ class _SaleFormState extends State<SaleForm> {
                   ],
                 ),
               ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final rider in _selectedRiders)
-                  Chip(
-                    label: Text(
-                      rider.fullName,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    avatar: CircleAvatar(
-                      backgroundColor:
-                          AppColors.primary.withValues(alpha: 0.12),
-                      child: Text(
-                        rider.initials,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    ),
-                    onDeleted: () => setState(
-                        () => _selectedRiders.remove(rider)),
-                    deleteIcon: const Icon(Icons.close, size: 16),
-                  ),
-                DropdownButton<String?>(
-                  value: null,
-                  hint: const Text('+ Add rider'),
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    for (final r in _riders.where(
-                        (r) => !_selectedRiders.any((s) => s.id == r.id)))
-                      DropdownMenuItem(
-                        value: r.id,
-                        child: Text(
-                          r.fullName,
-                          style: const TextStyle(fontSize: 13.5),
+            if (_selectedRiders.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'No rider selected yet.',
+                  style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary.withValues(alpha: 0.8)),
+                ),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final rider in _selectedRiders)
+                    Chip(
+                      label: Text(
+                        rider.fullName,
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                  ],
-                  onChanged: (v) {
-                    if (v == null) return;
-                    setState(() {
-                      _selectedRiders
-                          .add(_riders.firstWhere((r) => r.id == v));
-                    });
-                  },
-                ),
-              ],
-            ),
-            if (_selectedRiders.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Text(
-                  'No rider selected — no delivery will be created.',
-                  style: TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
-                ),
+                      avatar: CircleAvatar(
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: 0.12),
+                        child: Text(
+                          rider.initials,
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ),
+                      onDeleted: () => setState(
+                          () => _selectedRiders.remove(rider)),
+                      deleteIcon: const Icon(Icons.close, size: 16),
+                    ),
+                ],
               ),
+            OutlinedButton.icon(
+              onPressed: _pickRiders,
+              icon: const Icon(Icons.two_wheeler_outlined, size: 18),
+              label: Text(
+                _selectedRiders.isEmpty ? 'Select rider' : 'Add / change rider',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
           ],
         ),
       ),
@@ -1148,6 +1114,478 @@ class _SaleFormState extends State<SaleForm> {
           ),
         ),
       ],
+    );
+  }
+}
+// test-1787029459
+
+/// A product chosen from the picker, with the qty + price the cashier set.
+class _PickedProduct {
+  const _PickedProduct({
+    required this.product,
+    required this.quantity,
+    required this.priceText,
+  });
+
+  final Product product;
+  final int quantity;
+  final String priceText;
+}
+
+/// Bottom sheet: search the catalogue -> tap a product -> set quantity &
+/// selling price -> "Add to sale".
+class AddProductSheet extends StatefulWidget {
+  const AddProductSheet({
+    super.key,
+    required this.products,
+    required this.stock,
+  });
+
+  final List<Product> products;
+  final Map<String, int> stock;
+
+  @override
+  State<AddProductSheet> createState() => _AddProductSheetState();
+}
+
+class _AddProductSheetState extends State<AddProductSheet> {
+  final _searchCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+
+  Product? _selected;
+  int _qty = 1;
+  String? _qtyError;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _priceCtrl.dispose();
+    super.dispose();
+  }
+
+  int _availableFor(Product p) {
+    if (p.productType == ProductType.service) return 1 << 30;
+    return widget.stock[p.id] ?? 0;
+  }
+
+  List<Product> get _filtered {
+    final term = _searchCtrl.text.trim().toLowerCase();
+    if (term.isEmpty) return widget.products;
+    return widget.products
+        .where((p) => p.name.toLowerCase().contains(term))
+        .toList();
+  }
+
+  void _select(Product p) {
+    setState(() {
+      _selected = p;
+      _qty = 1;
+      _qtyError = null;
+      _priceCtrl.text = p.salePrice == p.salePrice.roundToDouble()
+          ? p.salePrice.toStringAsFixed(0)
+          : p.salePrice.toString();
+    });
+  }
+
+  void _confirmAdd() {
+    final product = _selected;
+    if (product == null) return;
+    final available = _availableFor(product);
+    if (_qty < 1) {
+      setState(() => _qtyError = 'Quantity must be at least 1.');
+      return;
+    }
+    if (_qty > available) {
+      setState(() =>
+          _qtyError = 'Only $available available — reduce the quantity.');
+      return;
+    }
+    final price = double.tryParse(_priceCtrl.text.trim());
+    if (price == null || price < 0) {
+      setState(() => _qtyError = 'Enter a valid selling price.');
+      return;
+    }
+    Navigator.of(context).pop(_PickedProduct(
+      product: product,
+      quantity: _qty,
+      priceText: _priceCtrl.text.trim(),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _selected == null ? 'Add product' : _selected!.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _selected == null
+                  ? _buildList(scrollController)
+                  : _buildDetail(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildList(ScrollController scrollController) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: TextField(
+            controller: _searchCtrl,
+            onChanged: (_) => setState(() {}),
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Search products…',
+              prefixIcon: Icon(Icons.search),
+              isDense: true,
+            ),
+          ),
+        ),
+        Expanded(
+          child: _filtered.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No products match.',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                )
+              : ListView.separated(
+                  controller: scrollController,
+                  itemCount: _filtered.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final product = _filtered[i];
+                    final available = _availableFor(product);
+                    final isService =
+                        product.productType == ProductType.service;
+                    final outOfStock = !isService && available <= 0;
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(
+                        product.productType.icon,
+                        size: 20,
+                        color: outOfStock
+                            ? AppColors.textSecondary
+                            : AppColors.primary,
+                      ),
+                      title: Text(
+                        product.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: outOfStock
+                              ? AppColors.textSecondary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      subtitle: Text(
+                        isService
+                            ? AppFormatters.kes(product.salePrice)
+                            : '${AppFormatters.kes(product.salePrice)} · '
+                                'avail $available',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: outOfStock
+                              ? AppColors.danger
+                              : AppColors.textSecondary,
+                          fontWeight: outOfStock
+                              ? FontWeight.w700
+                              : FontWeight.w400,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, size: 18),
+                      onTap: outOfStock ? null : () => _select(product),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetail() {
+    final product = _selected!;
+    final available = _availableFor(product);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${product.productType.label}'
+                    '${product.productType == ProductType.service ? '' : ' · available $available'}',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text(
+                        'Quantity',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => setState(() {
+                          if (_qty > 1) _qty--;
+                          _qtyError = null;
+                        }),
+                        icon: const Icon(Icons.remove_circle_outline, size: 22),
+                      ),
+                      Text(
+                        '$_qty',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => setState(() {
+                          if (_qty < available) _qty++;
+                          _qtyError = null;
+                        }),
+                        icon: const Icon(Icons.add_circle_outline, size: 22),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _priceCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() => _qtyError = null),
+                    decoration: const InputDecoration(
+                      labelText: 'Selling price KSh',
+                      isDense: true,
+                      prefixIcon: Icon(Icons.sell_outlined, size: 20),
+                    ),
+                  ),
+                  if (_qtyError != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _qtyError!,
+                      style: const TextStyle(
+                        color: AppColors.danger,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => setState(() => _selected = null),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Back'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _confirmAdd,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: Text(
+                    'Add · ${AppFormatters.kes(_qty * (double.tryParse(_priceCtrl.text.trim()) ?? product.salePrice))}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bottom sheet: pick one or more riders (empty by default).
+class RiderPickerSheet extends StatefulWidget {
+  const RiderPickerSheet({
+    super.key,
+    required this.riders,
+    required this.selectedIds,
+  });
+
+  final List<RiderSummary> riders;
+  final Set<String> selectedIds;
+
+  @override
+  State<RiderPickerSheet> createState() => _RiderPickerSheetState();
+}
+
+class _RiderPickerSheetState extends State<RiderPickerSheet> {
+  late final Set<String> _selected = {...widget.selectedIds};
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<RiderSummary> get _filtered {
+    final term = _searchCtrl.text.trim().toLowerCase();
+    if (term.isEmpty) return widget.riders;
+    return widget.riders
+        .where((r) => r.fullName.toLowerCase().contains(term))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.7,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Select rider(s)',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: 'Search riders…',
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                ),
+              ),
+            ),
+            Expanded(
+              child: _filtered.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No riders found.',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    )
+                  : ListView.separated(
+                      controller: scrollController,
+                      itemCount: _filtered.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final rider = _filtered[i];
+                        final checked = _selected.contains(rider.id);
+                        return CheckboxListTile(
+                          dense: true,
+                          value: checked,
+                          onChanged: (v) => setState(() {
+                            if (v == true) {
+                              _selected.add(rider.id);
+                            } else {
+                              _selected.remove(rider.id);
+                            }
+                          }),
+                          title: Text(
+                            rider.fullName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            rider.branchName ?? '',
+                            style: const TextStyle(fontSize: 11.5),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.of(context).pop(_selected),
+                  icon: const Icon(Icons.check),
+                  label: Text('Done (${_selected.length} selected)'),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
