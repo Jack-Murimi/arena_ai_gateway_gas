@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import 'customer_form_page.dart';
+import 'customer_payment_form_page.dart';
 import 'data/customer_repository.dart';
 import 'models/customer.dart';
 
@@ -20,8 +21,10 @@ class CustomerDetailPage extends StatefulWidget {
 class _CustomerDetailPageState extends State<CustomerDetailPage> {
   final _repo = CustomerRepository();
 
+  late Customer _customer = widget.customer;
   List<CustomerContact> _contacts = [];
   List<CustomerLocation> _locations = [];
+  List<CustomerLedgerEntry> _ledger = [];
   bool _loading = true;
   String? _error;
 
@@ -37,12 +40,22 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
       _error = null;
     });
     try {
-      final contacts = await _repo.fetchContactsByCustomer();
-      final locations = await _repo.fetchLocationsByCustomer();
+      final results = await Future.wait([
+        _repo.fetchCustomer(widget.customer.id),
+        _repo.fetchContactsByCustomer(),
+        _repo.fetchLocationsByCustomer(),
+        _repo.fetchLedger(widget.customer.id),
+      ]);
       if (!mounted) return;
       setState(() {
-        _contacts = contacts[widget.customer.id] ?? [];
-        _locations = locations[widget.customer.id] ?? [];
+        _customer = results[0] as Customer;
+        _contacts =
+            (results[1] as Map<String, List<CustomerContact>>)[widget.customer.id] ??
+                [];
+        _locations = (results[2] as Map<String, List<CustomerLocation>>)[
+                widget.customer.id] ??
+            [];
+        _ledger = results[3] as List<CustomerLedgerEntry>;
         _loading = false;
       });
     } catch (e) {
@@ -52,6 +65,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _recordPayment() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CustomerPaymentFormPage(customer: _customer),
+      ),
+    );
+    if (saved == true) _load();
   }
 
   Future<void> _edit() async {
@@ -69,7 +91,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final customer = widget.customer;
+    final customer = _customer;
     return Scaffold(
       appBar: AppBar(
         title: Text(customer.name),
@@ -95,6 +117,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                     _contactsCard(),
                     const SizedBox(height: 16),
                     _locationsCard(),
+                    const SizedBox(height: 16),
+                    _ledgerCard(),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -237,16 +261,109 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             ],
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Payments will be available with the Sales module.',
-                  ),
-                ),
-              ),
+              onPressed: _recordPayment,
               icon: const Icon(Icons.payments_outlined),
               label: const Text('Record payment'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _ledgerCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Account ledger (${_ledger.length})',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            if (_ledger.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No account activity yet.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              )
+            else
+              for (final entry in _ledger)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Icon(
+                        entry.isSale
+                            ? Icons.receipt_long_outlined
+                            : entry.isPayment
+                                ? Icons.payments_outlined
+                                : Icons.tune,
+                        size: 18,
+                        color: entry.isPayment
+                            ? AppColors.success
+                            : AppColors.primary,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.description,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              [
+                                if (entry.createdAt != null)
+                                  AppFormatters.dateTime(entry.createdAt!),
+                                if (entry.mpesaCode != null &&
+                                    entry.mpesaCode!.isNotEmpty)
+                                  entry.mpesaCode!,
+                              ].join(' · '),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            entry.isSale
+                                ? '+${AppFormatters.kes(entry.debit)}'
+                                : '−${AppFormatters.kes(entry.credit)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: entry.isSale
+                                  ? AppColors.danger
+                                  : AppColors.success,
+                            ),
+                          ),
+                          Text(
+                            'Bal ${AppFormatters.kes(entry.balanceAfter)}',
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
           ],
         ),
       ),

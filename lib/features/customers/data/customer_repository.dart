@@ -161,4 +161,41 @@ class CustomerRepository {
         .order('name');
     return rows.map(Product.fromMap).toList();
   }
+
+  // -------------------------------------------------------------------------
+  // Account ledger & payments
+  // -------------------------------------------------------------------------
+
+  Future<Customer> fetchCustomer(String customerId) async {
+    final row =
+        await _db.from('customers').select().eq('id', customerId).single();
+    return Customer.fromMap(row);
+  }
+
+  Future<List<CustomerLedgerEntry>> fetchLedger(String customerId) async {
+    final rows = await _db
+        .from('customer_ledger_view')
+        .select()
+        .eq('customer_id', customerId);
+    return rows.map(CustomerLedgerEntry.fromMap).toList();
+  }
+
+  Future<Map<String, dynamic>> recordPayment({
+    required String customerId,
+    required double amount,
+    required String method,
+    String? mpesaCode,
+    required DateTime paymentDate,
+    String? note,
+  }) async {
+    final data = await _db.rpc('record_customer_payment', params: {
+      'p_customer_id': customerId,
+      'p_amount': amount,
+      'p_method': method,
+      'p_mpesa_code': mpesaCode,
+      'p_payment_date': paymentDate.toIso8601String().substring(0, 10),
+      'p_note': note,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
 }

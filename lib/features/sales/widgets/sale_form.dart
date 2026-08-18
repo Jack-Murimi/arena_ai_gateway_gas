@@ -8,6 +8,7 @@ import '../../customers/models/customer.dart';
 import '../../inventory/models/product.dart';
 import '../../riders/models/rider.dart';
 import '../data/sale_repository.dart';
+import '../receipt_page.dart';
 
 /// One line item in the current sale.
 class _LineItem {
@@ -359,6 +360,21 @@ class _SaleFormState extends State<SaleForm> {
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () {
+              final saleId = result['sale_id'] as String?;
+              Navigator.of(context).pop();
+              if (saleId != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReceiptPage(saleId: saleId),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.print_outlined),
+            label: const Text('Print receipt'),
           ),
         ],
       ),

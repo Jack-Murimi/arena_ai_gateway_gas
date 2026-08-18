@@ -5,6 +5,7 @@ import '../../customers/models/customer.dart';
 import '../../inventory/models/product.dart';
 import '../../riders/data/rider_repository.dart';
 import '../../riders/models/rider.dart';
+import '../models/receipt.dart';
 import '../models/sale.dart';
 
 /// Data access for the Sales (POS) recording flow.
@@ -90,5 +91,57 @@ class SaleRepository {
         .order('sale_date', ascending: false)
         .limit(limit);
     return rows.map(SaleRecord.fromMap).toList();
+  }
+
+  /// Full data for printing/viewing one receipt.
+  Future<ReceiptData> fetchReceiptData(String saleId) async {
+    final sale = await _db
+        .from('sales_view')
+        .select()
+        .eq('id', saleId)
+        .single();
+    final items = await _db
+        .from('sale_items')
+        .select('*, products(name)')
+        .eq('sale_id', saleId)
+        .order('id');
+    final payments = await _db
+        .from('payments')
+        .select()
+        .eq('sale_id', saleId);
+
+    final paid = payments.fold<double>(
+      0,
+      (sum, p) => sum + (parseDouble(p['amount']) ?? 0),
+    );
+    final method = payments.isEmpty
+        ? null
+        : ((payments.first['method'] as String?) ?? '');
+    final mpesa = payments.isEmpty
+        ? null
+        : (payments.first['mpesa_code'] as String?);
+    final riders = sale['riders_summary'] as String?;
+    final total = parseDouble(sale['total']) ?? 0;
+
+    return ReceiptData(
+      saleId: saleId,
+      invoiceNo: (sale['invoice_no'] as String?) ?? '',
+      saleDate: sale['sale_date'] != null
+          ? DateTime.tryParse(sale['sale_date'] as String)
+          : null,
+      branchName: sale['branch_name'] as String?,
+      customerName: sale['customer_name'] as String?,
+      locationName: sale['location_name'] as String?,
+      cashierName: sale['cashier_name'] as String?,
+      items: items.map(ReceiptLine.fromMap).toList(),
+      total: total,
+      amountPaid: paid,
+      balanceDue: total - paid,
+      paymentStatus: (sale['payment_status'] as String?) ?? 'paid',
+      paymentMethod: method,
+      mpesaCode: mpesa,
+      riders: riders,
+      note: sale['note'] as String?,
+    );
   }
 }

@@ -1,6 +1,61 @@
 import '../../../core/utils/num_parse.dart';
 import '../../inventory/models/product.dart';
 
+/// One row of the customer account ledger.
+class CustomerLedgerEntry {
+  const CustomerLedgerEntry({
+    required this.id,
+    required this.customerId,
+    this.entryType = 'sale',
+    this.debit = 0,
+    this.credit = 0,
+    this.balanceAfter = 0,
+    this.createdAt,
+    this.invoiceNo,
+    this.paymentMethod,
+    this.mpesaCode,
+  });
+
+  final String id;
+  final String customerId;
+  final String entryType; // sale | payment | adjustment | refund | opening
+  final double debit;
+  final double credit;
+  final double balanceAfter;
+  final DateTime? createdAt;
+  final String? invoiceNo;
+  final String? paymentMethod;
+  final String? mpesaCode;
+
+  bool get isSale => entryType == 'sale';
+  bool get isPayment => entryType == 'payment';
+
+  String get description {
+    if (isSale) return 'Sale${invoiceNo != null ? ' $invoiceNo' : ''}';
+    if (isPayment) {
+      final m = paymentMethod?.toUpperCase() ?? '';
+      return 'Payment${m.isNotEmpty ? ' ($m)' : ''}';
+    }
+    return entryType[0].toUpperCase() + entryType.substring(1);
+  }
+
+  factory CustomerLedgerEntry.fromMap(Map<String, dynamic> map) =>
+      CustomerLedgerEntry(
+        id: (map['id'] as String?) ?? '',
+        customerId: (map['customer_id'] as String?) ?? '',
+        entryType: (map['entry_type'] as String?) ?? 'sale',
+        debit: parseDouble(map['debit']) ?? 0,
+        credit: parseDouble(map['credit']) ?? 0,
+        balanceAfter: parseDouble(map['balance_after']) ?? 0,
+        createdAt: map['created_at'] != null
+            ? DateTime.tryParse(map['created_at'] as String)
+            : null,
+        invoiceNo: map['invoice_no'] as String?,
+        paymentMethod: map['payment_method'] as String?,
+        mpesaCode: map['mpesa_code'] as String?,
+      );
+}
+
 /// A customer = a household/business that buys gas from us.
 class Customer {
   const Customer({

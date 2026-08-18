@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import 'data/sale_repository.dart';
 import 'models/sale.dart';
+import 'receipt_page.dart';
 import 'widgets/sale_form.dart';
 
 /// Sales (POS): record a sale (paid or invoice) + view recent sales.
@@ -163,7 +164,14 @@ class _SalesHistoryState extends State<SalesHistory> {
 
     return Card(
       margin: EdgeInsets.zero,
-      child: Padding(
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ReceiptPage(saleId: sale.id),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,6 +265,7 @@ class _SalesHistoryState extends State<SalesHistory> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );
