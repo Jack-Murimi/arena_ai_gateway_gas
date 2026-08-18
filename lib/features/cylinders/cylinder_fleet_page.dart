@@ -127,6 +127,7 @@ class _CylinderFleetPageState extends State<CylinderFleetPage> {
             ),
           ],
         ),
+        ),
         Expanded(child: _buildBody()),
       ],
     );
