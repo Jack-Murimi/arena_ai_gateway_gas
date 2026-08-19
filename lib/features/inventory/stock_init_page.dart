@@ -147,7 +147,11 @@ class _StockReconciliationPageState extends State<StockReconciliationPage> {
       _error = null;
     });
     try {
-      await _stockRepo.initStock(branchId: widget.branchId, items: items);
+      await _stockRepo.initStock(
+        branchId: widget.branchId,
+        items: items,
+        date: _reconDate,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(true);
       ScaffoldMessenger.of(context).showSnackBar(

@@ -53,10 +53,12 @@ class StockRepository {
   Future<void> initStock({
     required String branchId,
     required List<Map<String, dynamic>> items,
+    DateTime? date,
   }) async {
     await _db.rpc('admin_init_stock', params: {
       'p_branch_id': branchId,
       'p_items': items,
+      'p_date': date?.toIso8601String().substring(0, 10),
     });
   }
 
