@@ -75,3 +75,11 @@ end;
 $$;
 
 grant execute on function public.admin_init_stock(uuid, jsonb, date) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Correction (2026-08-19): Safe cylinders are 13kg, not 35kg.
+-- 35kg total at Lavington = 3 (K-Gas 1 + Hashi 2).
+-- ---------------------------------------------------------------------------
+update public.products set size_kg = 13 where name in ('35kg Safe Gas refill', '35kg Safe Gas Cylinder');
+update public.products set name = '13kg Safe Gas refill'   where name = '35kg Safe Gas refill';
+update public.products set name = '13kg Safe Gas Cylinder' where name = '35kg Safe Gas Cylinder';
