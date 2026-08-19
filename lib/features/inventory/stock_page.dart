@@ -7,9 +7,10 @@ import 'models/stock_item.dart';
 import 'order_form_page.dart';
 import 'stock_init_page.dart';
 
-/// Stock levels: per branch (or all branches combined) — type totals,
-/// refill/cylinder breakdowns by size, accessory & service quantities,
-/// low-stock flags, monthly init and ordering.
+/// Stock levels per branch (or all branches): cylinders grouped by size
+/// showing which brands have gas (refills) and which are empty, plus a
+/// total-cylinders summary at the bottom. Accessories & services listed
+/// separately.
 class StockPage extends StatefulWidget {
   const StockPage({super.key});
 
@@ -23,8 +24,6 @@ class _StockPageState extends State<StockPage> {
   List<Map<String, dynamic>> _branches = [];
   String? _branchId; // null = All branches
   List<StockItem> _stock = [];
-  Map<String, int> _totals = {};
-  Map<String, int> _sizeTotals = {};
   bool _loading = true;
   String? _error;
 
@@ -53,7 +52,7 @@ class _StockPageState extends State<StockPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = e.toString().replaceAll('Exception: ', '');
         _loading = false;
       });
     }
@@ -66,19 +65,15 @@ class _StockPageState extends State<StockPage> {
     });
     try {
       final stock = await _repo.fetchStock(branchId: _branchId);
-      final totals = await _repo.fetchBranchTypeTotals(branchId: _branchId);
-      final sizeTotals = await _repo.fetchSizeTotals(branchId: _branchId);
       if (!mounted) return;
       setState(() {
         _stock = _isAll ? _aggregateAll(stock) : stock;
-        _totals = totals;
-        _sizeTotals = sizeTotals;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = e.toString().replaceAll('Exception: ', '');
         _loading = false;
       });
     }
@@ -96,6 +91,8 @@ class _StockPageState extends State<StockPage> {
         productId: r.productId,
         productName: r.productName,
         productType: r.productType,
+        brand: r.brand,
+        sizeKg: r.sizeKg,
         quantity: qty,
         lowStockThreshold: r.lowStockThreshold,
         isLow: qty <= r.lowStockThreshold,
@@ -115,9 +112,74 @@ class _StockPageState extends State<StockPage> {
         '';
   }
 
+  // -------------------------------------------------------------------------
+  // Grouping
+  // -------------------------------------------------------------------------
+
+  List<StockItem> get _cylinders => _stock
+      .where((s) =>
+          s.productType == ProductType.refill ||
+          s.productType == ProductType.cylinder)
+      .toList();
+
+  List<StockItem> get _accessories => _stock
+      .where((s) => s.productType == ProductType.accessory)
+      .toList();
+
+  List<StockItem> get _services =>
+      _stock.where((s) => s.productType == ProductType.service).toList();
+
+  /// Sizes present, sorted (3, 6, 13, 22.5, ...).
+  List<double?> get _sizes {
+    final set = <double>{};
+    for (final s in _cylinders) {
+      if (s.sizeKg != null) set.add(s.sizeKg!);
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  List<StockItem> _gasFor(double? size) => _cylinders
+      .where((s) =>
+          s.productType == ProductType.refill && s.sizeKg == size)
+      .toList()
+    ..sort((a, b) => (a.brand ?? a.productName)
+        .toLowerCase()
+        .compareTo((b.brand ?? b.productName).toLowerCase()));
+
+  List<StockItem> _emptyFor(double? size) => _cylinders
+      .where((s) =>
+          s.productType == ProductType.cylinder && s.sizeKg == size)
+      .toList()
+    ..sort((a, b) => (a.brand ?? a.productName)
+        .toLowerCase()
+        .compareTo((b.brand ?? b.productName).toLowerCase()));
+
+  int _gasQty(double? size) =>
+      _gasFor(size).fold<int>(0, (sum, s) => sum + s.quantity);
+  int _emptyQty(double? size) =>
+      _emptyFor(size).fold<int>(0, (sum, s) => sum + s.quantity);
+
+  int get _totalGas => _cylinders
+      .where((s) => s.productType == ProductType.refill)
+      .fold<int>(0, (sum, s) => sum + s.quantity);
+  int get _totalEmpty => _cylinders
+      .where((s) => s.productType == ProductType.cylinder)
+      .fold<int>(0, (sum, s) => sum + s.quantity);
+  int get _totalCylinders => _totalGas + _totalEmpty;
   int get _lowCount => _stock.where((s) => s.isLow).length;
 
-  Future<void> _openInit() async {
+  static String _sizeLabel(double? size) => size == null
+      ? ''
+      : (size == size.roundToDouble()
+          ? '${size.toInt()}kg'
+          : '${size}kg');
+
+  // -------------------------------------------------------------------------
+  // Actions
+  // -------------------------------------------------------------------------
+
+  Future<void> _openReconcile() async {
     if (_branchId == null) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -151,35 +213,29 @@ class _StockPageState extends State<StockPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String?>(
-                      initialValue: _branchId,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Branch',
-                        isDense: true,
-                        prefixIcon: Icon(Icons.storefront_outlined, size: 20),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('All branches'),
-                        ),
-                        for (final b in _branches)
-                          DropdownMenuItem<String?>(
-                            value: b['id'] as String,
-                            child: Text(b['name'] as String),
-                          ),
-                      ],
-                      onChanged: (v) {
-                        setState(() => _branchId = v);
-                        _loadStock();
-                      },
-                    ),
+              child: DropdownButtonFormField<String?>(
+                initialValue: _branchId,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Branch',
+                  isDense: true,
+                  prefixIcon: Icon(Icons.storefront_outlined, size: 20),
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('All branches'),
                   ),
+                  for (final b in _branches)
+                    DropdownMenuItem<String?>(
+                      value: b['id'] as String,
+                      child: Text(b['name'] as String),
+                    ),
                 ],
+                onChanged: (v) {
+                  setState(() => _branchId = v);
+                  _loadStock();
+                },
               ),
             ),
             Expanded(child: _buildBody()),
@@ -192,11 +248,11 @@ class _StockPageState extends State<StockPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               FloatingActionButton.extended(
-                heroTag: 'init-stock',
-                onPressed: _branchId == null ? null : _openInit,
+                heroTag: 'reconcile-stock',
+                onPressed: _branchId == null ? null : _openReconcile,
                 backgroundColor: AppColors.primary,
                 icon: const Icon(Icons.upload_file_outlined),
-                label: const Text('Init stock'),
+                label: const Text('Reconcile stock'),
               ),
               const SizedBox(width: 8),
               FloatingActionButton.extended(
@@ -214,7 +270,7 @@ class _StockPageState extends State<StockPage> {
             left: 16,
             bottom: 24,
             child: Text(
-              'Select a branch to init stock or place orders',
+              'Select a branch to reconcile or order',
               style: TextStyle(
                 fontSize: 11.5,
                 color: AppColors.textSecondary.withValues(alpha: 0.8),
@@ -262,9 +318,9 @@ class _StockPageState extends State<StockPage> {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
               child: Text(
-                'No stock initialized yet.\n'
-                'Pick a branch and tap "Init stock" to set opening '
-                'quantities.',
+                'No stock recorded yet.\n'
+                'Pick a branch and tap "Reconcile stock" to enter your '
+                'counted quantities.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary),
               ),
@@ -300,34 +356,34 @@ class _StockPageState extends State<StockPage> {
             ),
           _summaryCards(),
           const SizedBox(height: 14),
-          _sizeBreakdown(
-            'Refills by size',
-            ProductType.refill,
-            AppColors.primary,
-          ),
-          const SizedBox(height: 14),
-          _sizeBreakdown(
-            'Cylinders by size',
-            ProductType.cylinder,
-            AppColors.primary,
-          ),
-          const SizedBox(height: 14),
-          _accessoriesCard(),
-          const SizedBox(height: 14),
-          if (_stock.isNotEmpty) ...[
+          if (_cylinders.isNotEmpty) ...[
             const Text(
-              'All products',
+              'Cylinders by size',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textSecondary,
               ),
             ),
+            const SizedBox(height: 6),
+            const Text(
+              'Refills are cylinders with gas; empties are cylinders '
+              'without gas.',
+              style: TextStyle(
+                  fontSize: 11.5, color: AppColors.textSecondary),
+            ),
             const SizedBox(height: 8),
-            for (final item in _stock) ...[
-              _stockRow(item),
-              const SizedBox(height: 6),
+            for (final size in _sizes) ...[
+              _sizeCard(size),
+              const SizedBox(height: 8),
             ],
+            const SizedBox(height: 8),
+            _totalCylindersCard(),
+            const SizedBox(height: 14),
+          ],
+          if (_accessories.isNotEmpty || _services.isNotEmpty) ...[
+            _accessoriesCard(),
+            const SizedBox(height: 14),
           ],
         ],
       ),
@@ -335,162 +391,248 @@ class _StockPageState extends State<StockPage> {
   }
 
   Widget _summaryCards() {
-    final refills = _totals['refill'] ?? 0;
-    final cylinders = _totals['cylinder'] ?? 0;
-    final accessories = _totals['accessory'] ?? 0;
-    final services = _totals['service'] ?? 0;
-    final totalUnits =
-        _stock.fold<int>(0, (sum, s) => sum + s.quantity);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        const Text(
-          'Stock summary',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textSecondary,
+        Expanded(
+          child: _totalCard(
+            'With gas',
+            '$_totalGas',
+            AppColors.primary,
+            Icons.local_fire_department,
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _totalCard(
-                'Refills',
-                '$refills',
-                AppColors.primary,
-                Icons.local_fire_department,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _totalCard(
-                'Cylinders',
-                '$cylinders',
-                AppColors.primary,
-                Icons.propane_tank_outlined,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _totalCard(
-                'Refill+Cyl',
-                '${refills + cylinders}',
-                AppColors.accent,
-                Icons.cyclone,
-              ),
-            ),
-          ],
+        const SizedBox(width: 8),
+        Expanded(
+          child: _totalCard(
+            'Empty',
+            '$_totalEmpty',
+            AppColors.textPrimary,
+            Icons.propane_tank_outlined,
+          ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: _totalCard(
-                'Accessories',
-                '$accessories',
-                AppColors.textPrimary,
-                Icons.extension_outlined,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _totalCard(
-                'Services',
-                '$services',
-                AppColors.textPrimary,
-                Icons.handyman_outlined,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _totalCard(
-                'Total units',
-                '$totalUnits',
-                AppColors.primary,
-                Icons.inventory_2_outlined,
-              ),
-            ),
-          ],
+        const SizedBox(width: 8),
+        Expanded(
+          child: _totalCard(
+            'Total cylinders',
+            '$_totalCylinders',
+            AppColors.accent,
+            Icons.cyclone,
+          ),
         ),
       ],
     );
   }
 
-  Widget _sizeBreakdown(String title, ProductType type, Color color) {
-    final items = <(String, int)>[];
-    for (final size in Product.refillSizes) {
-      final key = '${type.name}|$size';
-      items.add((Product.formatSizeKg(size), _sizeTotals[key] ?? 0));
-    }
+  /// One size: which brands have gas + which are empty, with subtotals.
+  Widget _sizeCard(double? size) {
+    final gas = _gasFor(size);
+    final empty = _emptyFor(size);
+    final gasQty = _gasQty(size);
+    final emptyQty = _emptyQty(size);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final (label, qty) in items)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: (qty > 0 ? color : AppColors.border)
-                      .withValues(alpha: qty > 0 ? 0.12 : 0.4),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: qty > 0
-                        ? color.withValues(alpha: 0.4)
-                        : AppColors.border,
+            Row(
+              children: [
+                Text(
+                  _sizeLabel(size),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
                   ),
                 ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${gasQty + emptyQty} total',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (gas.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'WITH GAS',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              for (final g in gas)
+                _brandLine(g.brand ?? g.productName, g.quantity),
+              _subtotalLine('Gas subtotal', gasQty, AppColors.primary),
+            ],
+            if (empty.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              const Text(
+                'EMPTY',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              for (final e in empty)
+                _brandLine(e.brand ?? e.productName, e.quantity),
+              _subtotalLine('Empty subtotal', emptyQty, AppColors.textPrimary),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _brandLine(String brand, int qty) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          const SizedBox(width: 4),
+          const Icon(Icons.radio_button_unchecked,
+              size: 12, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              brand,
+              style: const TextStyle(fontSize: 13.5),
+            ),
+          ),
+          Text(
+            '$qty',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _subtotalLine(String label, int qty, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontStyle: FontStyle.italic,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Text(
+            '( $qty )',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bottom summary: total cylinders per size + grand total.
+  Widget _totalCylindersCard() {
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.accent, width: 1.2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'TOTAL CYLINDERS',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+                color: AppColors.accent,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final size in _sizes)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    Expanded(
+                      child: Text(
+                        _sizeLabel(size),
+                        style: const TextStyle(fontSize: 13.5),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Text(
-                      '$qty',
-                      style: TextStyle(
+                      '${_gasQty(size) + _emptyQty(size)}',
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
-                        color: qty > 0 ? color : AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
+            const Divider(height: 12),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'TOTAL',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$_totalCylinders',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _accessoriesCard() {
-    final accessories =
-        _stock.where((s) => s.productType == ProductType.accessory).toList();
-    final services =
-        _stock.where((s) => s.productType == ProductType.service).toList();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -503,22 +645,18 @@ class _StockPageState extends State<StockPage> {
           ),
         ),
         const SizedBox(height: 8),
-        if (accessories.isEmpty && services.isEmpty)
-          const Text(
-            'None in stock yet.',
-            style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-          )
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final a in accessories)
-                _accessoryChip(a.productName, a.quantity, AppColors.textPrimary),
-              for (final s in services)
-                _accessoryChip(s.productName, s.quantity, AppColors.textSecondary),
-            ],
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final a in _accessories)
+              _accessoryChip(
+                  a.brand ?? a.productName, a.quantity, AppColors.textPrimary),
+            for (final s in _services)
+              _accessoryChip(
+                  s.brand ?? s.productName, s.quantity, AppColors.textSecondary),
+          ],
+        ),
       ],
     );
   }
@@ -581,74 +719,6 @@ class _StockPageState extends State<StockPage> {
               style: const TextStyle(
                 fontSize: 10.5,
                 color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _stockRow(StockItem item) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Icon(
-              item.productType.icon,
-              size: 20,
-              color: AppColors.primary,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.productName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.5,
-                    ),
-                  ),
-                  Text(
-                    item.productType.label,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (item.isLow)
-              const Tooltip(
-                message: 'Low stock',
-                child: Icon(
-                  Icons.warning_amber_rounded,
-                  size: 18,
-                  color: AppColors.danger,
-                ),
-              ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: (item.isLow ? AppColors.danger : AppColors.success)
-                    .withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '${item.quantity}',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: item.isLow ? AppColors.danger : AppColors.success,
-                ),
               ),
             ),
           ],

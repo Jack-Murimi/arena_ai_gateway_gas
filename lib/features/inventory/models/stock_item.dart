@@ -9,6 +9,8 @@ class StockItem {
     required this.productId,
     required this.productName,
     this.productType = ProductType.refill,
+    this.brand,
+    this.sizeKg,
     this.quantity = 0,
     this.lowStockThreshold = 5,
     this.isLow = false,
@@ -19,6 +21,8 @@ class StockItem {
   final String productId;
   final String productName;
   final ProductType productType;
+  final String? brand;
+  final double? sizeKg;
   final int quantity;
   final int lowStockThreshold;
   final bool isLow;
@@ -30,6 +34,8 @@ class StockItem {
         productName: (map['product_name'] as String?) ?? '',
         productType:
             ProductType.fromString(map['product_type'] as String?),
+        brand: map['brand'] as String?,
+        sizeKg: parseDouble(map['size_kg']),
         quantity: parseInt(map['quantity']) ?? 0,
         lowStockThreshold: parseInt(map['low_stock_threshold']) ?? 5,
         isLow: map['is_low'] as bool? ?? false,
