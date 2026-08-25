@@ -9,6 +9,7 @@ import '../deliveries/deliveries_page.dart';
 import '../inventory/products_page.dart';
 import '../inventory/purchase_orders_page.dart';
 import '../inventory/stock_page.dart';
+import '../inventory/stock_transfers_page.dart';
 import '../reports/reports_page.dart';
 import '../riders/riders_page.dart';
 import '../sales/sales_page.dart';
@@ -99,6 +100,12 @@ class _HomeShellState extends State<HomeShell> {
               Icons.inventory_outlined,
               'Stock levels',
               () => _openDrawerScreen(const StockPage(), 'Stock levels'),
+            ),
+            _drawerTile(
+              Icons.swap_horiz_outlined,
+              'Stock transfers',
+              () => _openDrawerScreen(
+                  const StockTransfersPage(), 'Stock transfers'),
             ),
             _drawerTile(
               Icons.shopping_basket_outlined,
