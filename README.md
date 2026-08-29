@@ -8,7 +8,7 @@ Flutter point-of-sale + ERP system for **Gateway Gas Enterprises**, backed by
 | Module | Status |
 |---|---|
 | Auth (email/password, roles) | 🚧 Skeleton done |
-| POS (cart, payments) | 🚧 Layout skeleton |
+| POS (cart, payments) | ✅ **Complete** — Sales recording, cylinder exchange tracking, invoice management, payments |
 | Inventory & stock | ✅ **Complete** — Stock levels, branch filtering, matrix view, inter-branch transfers with cylinder tracking |
 | Customers, credit & deposits | 🚧 Schema ready |
 | Suppliers & purchases | 🚧 Schema ready |
