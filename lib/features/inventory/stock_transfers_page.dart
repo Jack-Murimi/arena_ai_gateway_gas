@@ -34,10 +34,12 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
     try {
       final rows = await _db
           .from('stock_transfers')
-          .select('*, '
-              'source:branches!stock_transfers_source_branch_id_fkey(name), '
-              'destination:branches!stock_transfers_destination_branch_id_fkey(name), '
-              'stock_transfer_items(*, product:products(name,product_type))')
+          .select(
+            '*, '
+            'source:branches!stock_transfers_source_branch_id_fkey(name), '
+            'destination:branches!stock_transfers_destination_branch_id_fkey(name), '
+            'stock_transfer_items(*, product:products(name,product_type))',
+          )
           .order('created_at', ascending: false);
       if (!mounted) return;
       setState(() => _transfers = List<Map<String, dynamic>>.from(rows));
@@ -53,15 +55,13 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
       await _db.rpc(rpc, params: parameters);
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transfer updated.')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Transfer updated.')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -113,7 +113,9 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: sourceBranchId,
-                      decoration: const InputDecoration(labelText: 'From branch'),
+                      decoration: const InputDecoration(
+                        labelText: 'From branch',
+                      ),
                       items: [
                         for (final branch in branches)
                           DropdownMenuItem(
@@ -166,13 +168,16 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
                       alignment: Alignment.centerRight,
                       child: FilledButton(
                         onPressed: () async {
-                          final quantity = int.tryParse(quantityController.text) ?? 0;
+                          final quantity =
+                              int.tryParse(quantityController.text) ?? 0;
                           if (sourceBranchId == null ||
                               destinationBranchId == null ||
                               productId == null ||
                               quantity < 1) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Complete all fields.')),
+                              const SnackBar(
+                                content: Text('Complete all fields.'),
+                              ),
                             );
                             return;
                           }
@@ -190,7 +195,8 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
                               'product_id': productId,
                               'quantity': quantity,
                             });
-                            if (sheetContext.mounted) Navigator.pop(sheetContext);
+                            if (sheetContext.mounted)
+                              Navigator.pop(sheetContext);
                             await _load();
                           } catch (e) {
                             if (context.mounted) {
@@ -225,17 +231,17 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : _transfers.isEmpty
-                  ? const Center(child: Text('No stock transfers yet.'))
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _transfers.length,
-                        itemBuilder: (_, index) => _transferCard(_transfers[index]),
-                      ),
-                    ),
+          ? Center(child: Text(_error!))
+          : _transfers.isEmpty
+          ? const Center(child: Text('No stock transfers yet.'))
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: _transfers.length,
+                itemBuilder: (_, index) => _transferCard(_transfers[index]),
+              ),
+            ),
     );
   }
 
@@ -272,10 +278,9 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
-                  onPressed: () => _runAction(
-                    'dispatch_stock_transfer',
-                    {'p_transfer_id': transfer['id']},
-                  ),
+                  onPressed: () => _runAction('dispatch_stock_transfer', {
+                    'p_transfer_id': transfer['id'],
+                  }),
                   icon: const Icon(Icons.local_shipping_outlined),
                   label: const Text('Dispatch'),
                 ),
@@ -284,10 +289,9 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
-                  onPressed: () => _runAction(
-                    'receive_stock_transfer',
-                    {'p_transfer_id': transfer['id']},
-                  ),
+                  onPressed: () => _runAction('receive_stock_transfer', {
+                    'p_transfer_id': transfer['id'],
+                  }),
                   icon: const Icon(Icons.inventory_outlined),
                   label: const Text('Confirm receipt'),
                 ),
@@ -316,13 +320,10 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
             (status == 'received' || status == 'returned') &&
             returned < quantity)
           TextButton(
-            onPressed: () => _runAction(
-              'return_transfer_cylinders',
-              {
-                'p_transfer_item_id': item['id'],
-                'p_quantity': quantity - returned,
-              },
-            ),
+            onPressed: () => _runAction('return_transfer_cylinders', {
+              'p_transfer_item_id': item['id'],
+              'p_quantity': quantity - returned,
+            }),
             child: const Text('Mark returned'),
           ),
       ],
