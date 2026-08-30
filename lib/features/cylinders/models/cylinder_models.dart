@@ -44,6 +44,7 @@ class CylinderTracking {
       followUpDate != null &&
       !isOverdue &&
       followUpDate!.difference(DateTime.now()).inDays <= 2;
+  bool get isReturned => status == 'returned';
 
   factory CylinderTracking.fromMap(Map<String, dynamic> map) =>
       CylinderTracking(
