@@ -25,6 +25,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   List<CustomerContact> _contacts = [];
   List<CustomerLocation> _locations = [];
   List<CustomerLedgerEntry> _ledger = [];
+  List<Map<String, dynamic>> _cylindersLeft = [];
   bool _loading = true;
   String? _error;
 
@@ -45,17 +46,21 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         _repo.fetchContactsByCustomer(),
         _repo.fetchLocationsByCustomer(),
         _repo.fetchLedger(widget.customer.id),
+        _repo.fetchCylindersLeft(widget.customer.id),
       ]);
       if (!mounted) return;
       setState(() {
         _customer = results[0] as Customer;
         _contacts =
-            (results[1] as Map<String, List<CustomerContact>>)[widget.customer.id] ??
-                [];
-        _locations = (results[2] as Map<String, List<CustomerLocation>>)[
-                widget.customer.id] ??
+            (results[1]
+                as Map<String, List<CustomerContact>>)[widget.customer.id] ??
+            [];
+        _locations =
+            (results[2]
+                as Map<String, List<CustomerLocation>>)[widget.customer.id] ??
             [];
         _ledger = results[3] as List<CustomerLedgerEntry>;
+        _cylindersLeft = results[4] as List<Map<String, dynamic>>;
         _loading = false;
       });
     } catch (e) {
@@ -106,22 +111,24 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _ErrorBody(message: _error!, onRetry: _load)
-              : ListView(
-                  padding: const EdgeInsets.all(24),
-                  children: [
-                    _headerCard(customer),
-                    const SizedBox(height: 16),
-                    _creditCard(customer),
-                    const SizedBox(height: 16),
-                    _contactsCard(),
-                    const SizedBox(height: 16),
-                    _locationsCard(),
-                    const SizedBox(height: 16),
-                    _ledgerCard(),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+          ? _ErrorBody(message: _error!, onRetry: _load)
+          : ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                _headerCard(customer),
+                const SizedBox(height: 16),
+                _creditCard(customer),
+                const SizedBox(height: 16),
+                _cylindersLeftCard(),
+                const SizedBox(height: 16),
+                _contactsCard(),
+                const SizedBox(height: 16),
+                _locationsCard(),
+                const SizedBox(height: 16),
+                _ledgerCard(),
+                const SizedBox(height: 32),
+              ],
+            ),
     );
   }
 
@@ -200,6 +207,136 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _cylindersLeftCard() {
+    if (_cylindersLeft.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Cylinders out with customer',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_cylindersLeft.length} cylinders',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            for (final cylinder in _cylindersLeft)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cyclone_outlined,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            cylinder['product_name'] as String? ?? 'Unknown',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          if (cylinder['invoice_no'] != null)
+                            Text(
+                              'Invoice: ${cylinder['invoice_no']}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          if (cylinder['left_at'] != null)
+                            Text(
+                              'Left: ${AppFormatters.date(DateTime.tryParse(cylinder['left_at'] as String) ?? DateTime.now())}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'x${cylinder['quantity'] as int? ?? 1}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (cylinder['follow_up_date'] != null)
+                          Text(
+                            AppFormatters.date(
+                              DateTime.tryParse(
+                                    cylinder['follow_up_date'] as String,
+                                  ) ??
+                                  DateTime.now(),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () {
+                // Navigate to cylinder tracking page filtered by this customer
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const Text(
+                      'Cylinder Tracking Page',
+                    ), // TODO: Replace with actual page
+                  ),
+                );
+              },
+              icon: const Icon(Icons.list_alt_outlined, size: 16),
+              label: const Text('View all cylinder tracking'),
+            ),
+          ],
         ),
       ),
     );
@@ -301,8 +438,8 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                         entry.isSale
                             ? Icons.receipt_long_outlined
                             : entry.isPayment
-                                ? Icons.payments_outlined
-                                : Icons.tune,
+                            ? Icons.payments_outlined
+                            : Icons.tune,
                         size: 18,
                         color: entry.isPayment
                             ? AppColors.success
@@ -477,9 +614,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(
-                    location.isPrimary
-                        ? Icons.star
-                        : Icons.place_outlined,
+                    location.isPrimary ? Icons.star : Icons.place_outlined,
                     color: location.isPrimary
                         ? AppColors.accent
                         : AppColors.textSecondary,

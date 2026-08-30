@@ -33,11 +33,7 @@ class CustomerRepository {
   }) async {
     final contactRows = [
       for (final c in contacts)
-        {
-          'name': c.name,
-          'phone': c.phone,
-          'is_primary': c.isPrimary,
-        },
+        {'name': c.name, 'phone': c.phone, 'is_primary': c.isPrimary},
     ];
     final locationRows = [
       for (final l in locations)
@@ -52,23 +48,21 @@ class CustomerRepository {
     if (customerId == null) {
       final res = await _db
           .from('customers')
-          .insert({
-            'name': name,
-            'email': email,
-            'credit_limit': creditLimit,
-          })
+          .insert({'name': name, 'email': email, 'credit_limit': creditLimit})
           .select('id')
           .single();
       final newId = res['id'] as String;
       await _insertContacts(newId, contactRows);
       await _insertLocations(newId, locationRows);
     } else {
-      await _db.from('customers').update({
-        'name': name,
-        'email': email,
-        'credit_limit': creditLimit,
-      }).eq('id', customerId);
-      await _db.from('customer_contacts').delete().eq('customer_id', customerId);
+      await _db
+          .from('customers')
+          .update({'name': name, 'email': email, 'credit_limit': creditLimit})
+          .eq('id', customerId);
+      await _db
+          .from('customer_contacts')
+          .delete()
+          .eq('customer_id', customerId);
       await _db
           .from('customer_locations')
           .delete()
@@ -167,8 +161,11 @@ class CustomerRepository {
   // -------------------------------------------------------------------------
 
   Future<Customer> fetchCustomer(String customerId) async {
-    final row =
-        await _db.from('customers').select().eq('id', customerId).single();
+    final row = await _db
+        .from('customers')
+        .select()
+        .eq('id', customerId)
+        .single();
     return Customer.fromMap(row);
   }
 
@@ -188,14 +185,33 @@ class CustomerRepository {
     required DateTime paymentDate,
     String? note,
   }) async {
-    final data = await _db.rpc('record_customer_payment', params: {
-      'p_customer_id': customerId,
-      'p_amount': amount,
-      'p_method': method,
-      'p_mpesa_code': mpesaCode,
-      'p_payment_date': paymentDate.toIso8601String().substring(0, 10),
-      'p_note': note,
-    });
+    final data = await _db.rpc(
+      'record_customer_payment',
+      params: {
+        'p_customer_id': customerId,
+        'p_amount': amount,
+        'p_method': method,
+        'p_mpesa_code': mpesaCode,
+        'p_payment_date': paymentDate.toIso8601String().substring(0, 10),
+        'p_note': note,
+      },
+    );
     return Map<String, dynamic>.from(data as Map);
+  }
+
+  // -------------------------------------------------------------------------
+  // Cylinder tracking for this customer
+  // -------------------------------------------------------------------------
+
+  Future<List<Map<String, dynamic>>> fetchCylindersLeft(
+    String customerId,
+  ) async {
+    final rows = await _db
+        .from('cylinder_tracking_view')
+        .select()
+        .eq('customer_id', customerId)
+        .eq('status', 'out')
+        .order('left_at', ascending: false);
+    return rows;
   }
 }
