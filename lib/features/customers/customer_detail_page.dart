@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
+import '../../features/cylinders/cylinder_tracking_page.dart';
 import 'customer_form_page.dart';
 import 'customer_payment_form_page.dart';
 import 'data/customer_repository.dart';
@@ -324,12 +325,10 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: () {
-                // Navigate to cylinder tracking page filtered by this customer
+                // Navigate to cylinder tracking page
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const Text(
-                      'Cylinder Tracking Page',
-                    ), // TODO: Replace with actual page
+                    builder: (_) => const CylinderTrackingPage(),
                   ),
                 );
               },
