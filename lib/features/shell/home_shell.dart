@@ -154,18 +154,21 @@ class _HomeShellState extends State<HomeShell> {
                 const ExchangeAlertsPage(),
               ),
               const SizedBox(height: 18),
-              ListTile(
-                dense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                leading: const Icon(Icons.logout, color: AppColors.danger),
-                title: const Text(
-                  'Sign out',
-                  style: TextStyle(
-                    color: AppColors.danger,
-                    fontWeight: FontWeight.w700,
+              Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  leading: const Icon(Icons.logout, color: AppColors.danger),
+                  title: const Text(
+                    'Sign out',
+                    style: TextStyle(
+                      color: AppColors.danger,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
+                  onTap: () => context.read<AuthController>().signOut(),
                 ),
-                onTap: () => context.read<AuthController>().signOut(),
               ),
             ],
           ),
@@ -191,48 +194,54 @@ class _HomeShellState extends State<HomeShell> {
 
   Widget _desktopPrimaryTile(int index, IconData icon, String label) {
     final selected = _index == index;
-    return ListTile(
-      dense: true,
-      selected: selected,
-      selectedTileColor: AppColors.primary.withValues(alpha: 0.7),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      leading: Icon(
-        icon,
-        color: selected ? AppColors.accent : Colors.white70,
-      ),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: selected ? Colors.white : Colors.white70,
-          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        dense: true,
+        selected: selected,
+        selectedTileColor: AppColors.primary.withValues(alpha: 0.7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        leading: Icon(
+          icon,
+          color: selected ? AppColors.accent : Colors.white70,
         ),
+        title: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.white70,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+          ),
+        ),
+        onTap: () => setState(() => _index = index),
       ),
-      onTap: () => setState(() => _index = index),
     );
   }
 
   Widget _desktopSecondaryTile(IconData icon, String label, Widget screen) {
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      leading: const SizedBox(width: 20),
-      title: Row(
-        children: [
-          Icon(icon, size: 20, color: Colors.white70),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.w600,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        leading: const SizedBox(width: 20),
+        title: Row(
+          children: [
+            Icon(icon, size: 20, color: Colors.white70),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        onTap: () => _openSecondaryScreen(screen, label),
       ),
-      onTap: () => _openSecondaryScreen(screen, label),
     );
   }
 
