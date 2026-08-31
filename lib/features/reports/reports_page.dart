@@ -50,11 +50,22 @@ class _ReportsPageState extends State<ReportsPage> {
     try {
       final branches = await _repo.fetchBranches();
       final daily = await _repo.fetchDailySales(
-          from: _from, to: _to, branchId: _branchId);
-      final best = await _repo.fetchBestSellers(from: _from, to: _to);
-      final methods = await _repo.fetchPaymentMethods(from: _from, to: _to);
+        from: _from,
+        to: _to,
+        branchId: _branchId,
+      );
+      final best = await _repo.fetchBestSellers(
+        from: _from,
+        to: _to,
+        branchId: _branchId,
+      );
+      final methods = await _repo.fetchPaymentMethods(
+        from: _from,
+        to: _to,
+        branchId: _branchId,
+      );
       final debtors = await _repo.fetchDebtors();
-      final valuation = await _repo.fetchStockValuation();
+      final valuation = await _repo.fetchStockValuation(branchId: _branchId);
       if (!mounted) return;
       setState(() {
         _branches = branches;
@@ -100,13 +111,11 @@ class _ReportsPageState extends State<ReportsPage> {
     }
   }
 
-  double get _totalSales =>
-      _daily.fold<double>(0, (s, r) => s + r.totalSales);
+  double get _totalSales => _daily.fold<double>(0, (s, r) => s + r.totalSales);
   int get _totalCount => _daily.fold<int>(0, (s, r) => s + r.salesCount);
   double get _totalUnpaid =>
       _daily.fold<double>(0, (s, r) => s + r.unpaidTotal + r.partialTotal);
-  double get _debtorTotal =>
-      _debtors.fold<double>(0, (s, d) => s + d.balance);
+  double get _debtorTotal => _debtors.fold<double>(0, (s, d) => s + d.balance);
 
   // -------------------------------------------------------------------------
   // CSV export
@@ -115,21 +124,29 @@ class _ReportsPageState extends State<ReportsPage> {
   String _buildCsv() {
     final buf = StringBuffer();
     buf.writeln('GATEWAY GAS ENTERPRISES - REPORT');
-    buf.writeln('Period: ${AppFormatters.date(_from)} to ${AppFormatters.date(_to)}');
-    buf.writeln('Branch: ${_branches.where((b) => b['id'] == _branchId).map((b) => b['name']).firstOrNull ?? 'All'}');
+    buf.writeln(
+      'Period: ${AppFormatters.date(_from)} to ${AppFormatters.date(_to)}',
+    );
+    buf.writeln(
+      'Branch: ${_branches.where((b) => b['id'] == _branchId).map((b) => b['name']).firstOrNull ?? 'All'}',
+    );
     buf.writeln();
     buf.writeln('DAILY SALES');
     buf.writeln('Date,Branch,Sales Count,Total (KSh),Paid (KSh),Credit (KSh)');
     for (final r in _daily) {
-      buf.writeln('${r.saleDate == null ? '' : AppFormatters.date(r.saleDate!)},'
-          '${r.branchName ?? ''},${r.salesCount},${r.totalSales.toStringAsFixed(2)},'
-          '${r.paidTotal.toStringAsFixed(2)},${(r.unpaidTotal + r.partialTotal).toStringAsFixed(2)}');
+      buf.writeln(
+        '${r.saleDate == null ? '' : AppFormatters.date(r.saleDate!)},'
+        '${r.branchName ?? ''},${r.salesCount},${r.totalSales.toStringAsFixed(2)},'
+        '${r.paidTotal.toStringAsFixed(2)},${(r.unpaidTotal + r.partialTotal).toStringAsFixed(2)}',
+      );
     }
     buf.writeln();
     buf.writeln('BEST SELLERS');
     buf.writeln('Product,Type,Qty Sold,Revenue (KSh)');
     for (final r in _bestSellers) {
-      buf.writeln('${r.productName ?? ''},${r.productType ?? ''},${r.quantitySold},${r.revenue.toStringAsFixed(2)}');
+      buf.writeln(
+        '${r.productName ?? ''},${r.productType ?? ''},${r.quantitySold},${r.revenue.toStringAsFixed(2)}',
+      );
     }
     buf.writeln();
     buf.writeln('PAYMENT METHODS');
@@ -140,18 +157,24 @@ class _ReportsPageState extends State<ReportsPage> {
       final cur = byMethod[m] ?? (0, 0.0);
       byMethod[m] = (cur.$1 + r.paymentCount, cur.$2 + r.amount);
     }
-    byMethod.forEach((m, v) => buf.writeln('$m,${v.$1},${v.$2.toStringAsFixed(2)}'));
+    byMethod.forEach(
+      (m, v) => buf.writeln('$m,${v.$1},${v.$2.toStringAsFixed(2)}'),
+    );
     buf.writeln();
     buf.writeln('DEBTORS');
     buf.writeln('Name,Phone,Balance (KSh)');
     for (final r in _debtors) {
-      buf.writeln('${r.name ?? ''},${r.phone ?? ''},${r.balance.toStringAsFixed(2)}');
+      buf.writeln(
+        '${r.name ?? ''},${r.phone ?? ''},${r.balance.toStringAsFixed(2)}',
+      );
     }
     buf.writeln();
     buf.writeln('STOCK VALUATION');
     buf.writeln('Branch,Products,Cost Value (KSh),Retail Value (KSh)');
     for (final r in _valuation) {
-      buf.writeln('${r.branchName ?? ''},${r.productCount},${r.costValue.toStringAsFixed(2)},${r.retailValue.toStringAsFixed(2)}');
+      buf.writeln(
+        '${r.branchName ?? ''},${r.productCount},${r.costValue.toStringAsFixed(2)},${r.retailValue.toStringAsFixed(2)}',
+      );
     }
     return buf.toString();
   }
@@ -169,13 +192,16 @@ class _ReportsPageState extends State<ReportsPage> {
           ),
         ],
         subject: 'Gateway Gas report',
-        text: 'Report ${AppFormatters.date(_from)} - ${AppFormatters.date(_to)}',
+        text:
+            'Report ${AppFormatters.date(_from)} - ${AppFormatters.date(_to)}',
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not export: ${e.toString().replaceAll('Exception: ', '')}'),
+          content: Text(
+            'Could not export: ${e.toString().replaceAll('Exception: ', '')}',
+          ),
         ),
       );
     }
@@ -190,146 +216,146 @@ class _ReportsPageState extends State<ReportsPage> {
     return _loading
         ? const Center(child: CircularProgressIndicator())
         : _error != null
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.cloud_off,
-                          color: AppColors.danger, size: 40),
-                      const SizedBox(height: 12),
-                      Text(_error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12)),
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: _load,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.cloud_off,
+                    color: AppColors.danger,
+                    size: 40,
                   ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _load,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : RefreshIndicator(
+            onRefresh: _load,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              children: [
+                _filtersCard(),
+                const SizedBox(height: 12),
+                _summaryCard(),
+                const SizedBox(height: 16),
+                _sectionCard(
+                  'Daily sales',
+                  _daily.isEmpty
+                      ? const Text(
+                          'No sales in this period.',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        )
+                      : Column(
+                          children: [
+                            for (final r in _daily)
+                              _row(
+                                '${AppFormatters.date(r.saleDate!)}'
+                                    '${r.branchName != null ? ' · ${r.branchName}' : ''}',
+                                '${r.salesCount} sale(s)',
+                                AppFormatters.kes(r.totalSales),
+                              ),
+                          ],
+                        ),
                 ),
-              )
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _filtersCard(),
-                    const SizedBox(height: 12),
-                    _summaryCard(),
-                      const SizedBox(height: 16),
-                      _sectionCard(
-                        'Daily sales',
-                        _daily.isEmpty
-                            ? const Text(
-                                'No sales in this period.',
-                                style: TextStyle(
-                                    color: AppColors.textSecondary),
-                              )
-                            : Column(
-                                children: [
-                                  for (final r in _daily)
-                                    _row(
-                                      '${AppFormatters.date(r.saleDate!)}'
-                                      '${r.branchName != null ? ' · ${r.branchName}' : ''}',
-                                      '${r.salesCount} sale(s)',
-                                      AppFormatters.kes(r.totalSales),
-                                    ),
-                                ],
+                const SizedBox(height: 12),
+                _sectionCard(
+                  'Best sellers',
+                  _bestSellers.isEmpty
+                      ? const Text(
+                          'No sales in this period.',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        )
+                      : Column(
+                          children: [
+                            for (final r in _bestSellers.take(10))
+                              _row(
+                                '${r.productName ?? ''}'
+                                    '${r.productType != null ? ' (${r.productType})' : ''}',
+                                '${r.quantitySold} sold',
+                                AppFormatters.kes(r.revenue),
                               ),
-                      ),
-                      const SizedBox(height: 12),
-                      _sectionCard(
-                        'Best sellers',
-                        _bestSellers.isEmpty
-                            ? const Text(
-                                'No sales in this period.',
-                                style: TextStyle(
-                                    color: AppColors.textSecondary),
-                              )
-                            : Column(
-                                children: [
-                                  for (final r in _bestSellers.take(10))
-                                    _row(
-                                      '${r.productName ?? ''}'
-                                      '${r.productType != null ? ' (${r.productType})' : ''}',
-                                      '${r.quantitySold} sold',
-                                      AppFormatters.kes(r.revenue),
-                                    ),
-                                ],
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 12),
+                _sectionCard(
+                  'Payment methods',
+                  _paymentMethods.isEmpty
+                      ? const Text(
+                          'No payments in this period.',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        )
+                      : Column(
+                          children: [
+                            for (final r in _paymentMethods)
+                              _row(
+                                '${r.method ?? ''}'
+                                    '${r.saleDate != null ? ' · ${AppFormatters.date(r.saleDate!)}' : ''}',
+                                '${r.paymentCount} payment(s)',
+                                AppFormatters.kes(r.amount),
                               ),
-                      ),
-                      const SizedBox(height: 12),
-                      _sectionCard(
-                        'Payment methods',
-                        _paymentMethods.isEmpty
-                            ? const Text(
-                                'No payments in this period.',
-                                style: TextStyle(
-                                    color: AppColors.textSecondary),
-                              )
-                            : Column(
-                                children: [
-                                  for (final r in _paymentMethods)
-                                    _row(
-                                      '${r.method ?? ''}'
-                                      '${r.saleDate != null ? ' · ${AppFormatters.date(r.saleDate!)}' : ''}',
-                                      '${r.paymentCount} payment(s)',
-                                      AppFormatters.kes(r.amount),
-                                    ),
-                                ],
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 12),
+                _sectionCard(
+                  'Debtors (${_debtors.length})',
+                  _debtors.isEmpty
+                      ? const Text(
+                          'No outstanding balances. 🎉',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        )
+                      : Column(
+                          children: [
+                            for (final d in _debtors)
+                              _row(
+                                d.name ?? '',
+                                d.phone ?? '',
+                                AppFormatters.kes(d.balance),
+                                valueColor: AppColors.warning,
                               ),
-                      ),
-                      const SizedBox(height: 12),
-                      _sectionCard(
-                        'Debtors (${_debtors.length})',
-                        _debtors.isEmpty
-                            ? const Text(
-                                'No outstanding balances. 🎉',
-                                style: TextStyle(
-                                    color: AppColors.textSecondary),
-                              )
-                            : Column(
-                                children: [
-                                  for (final d in _debtors)
-                                    _row(
-                                      d.name ?? '',
-                                      d.phone ?? '',
-                                      AppFormatters.kes(d.balance),
-                                      valueColor: AppColors.warning,
-                                    ),
-                                ],
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 12),
+                _sectionCard(
+                  'Stock valuation',
+                  _valuation.isEmpty
+                      ? const Text(
+                          'No stock initialized yet.',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        )
+                      : Column(
+                          children: [
+                            for (final v in _valuation)
+                              _row(
+                                v.branchName ?? '',
+                                '${v.productCount} products',
+                                'Cost ${AppFormatters.kes(v.costValue)}'
+                                    ' / Retail ${AppFormatters.kes(v.retailValue)}',
                               ),
-                      ),
-                      const SizedBox(height: 12),
-                      _sectionCard(
-                        'Stock valuation',
-                        _valuation.isEmpty
-                            ? const Text(
-                                'No stock initialized yet.',
-                                style: TextStyle(
-                                    color: AppColors.textSecondary),
-                              )
-                            : Column(
-                                children: [
-                                  for (final v in _valuation)
-                                    _row(
-                                      v.branchName ?? '',
-                                      '${v.productCount} products',
-                                      'Cost ${AppFormatters.kes(v.costValue)}'
-                                      ' / Retail ${AppFormatters.kes(v.retailValue)}',
-                                    ),
-                                ],
-                              ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                );
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          );
   }
 
   Widget _filtersCard() {
@@ -337,67 +363,85 @@ class _ReportsPageState extends State<ReportsPage> {
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _pickFrom,
-                icon: const Icon(Icons.calendar_today_outlined, size: 16),
-                label: Text(
-                  AppFormatters.date(_from),
-                  style: const TextStyle(fontSize: 12.5),
-                ),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6),
-              child: Text('—'),
-            ),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _pickTo,
-                icon: const Icon(Icons.calendar_today_outlined, size: 16),
-                label: Text(
-                  AppFormatters.date(_to),
-                  style: const TextStyle(fontSize: 12.5),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: DropdownButtonFormField<String?>(
-                initialValue: _branchId,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  labelText: 'Branch',
-                ),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('All'),
-                  ),
-                  for (final b in _branches)
-                    DropdownMenuItem<String?>(
-                      value: b['id'] as String,
-                      child: Text(b['name'] as String),
-                    ),
-                ],
-                onChanged: (v) {
-                  setState(() => _branchId = v);
-                  _load();
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              tooltip: 'Export CSV',
-              icon: const Icon(Icons.file_download_outlined),
-              onPressed: _loading ? null : _exportCsv,
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 600;
+            final controls = [
+              SizedBox(width: compact ? 160 : null, child: _fromControl()),
+              SizedBox(width: compact ? 160 : null, child: _toControl()),
+              SizedBox(width: compact ? 160 : null, child: _branchControl()),
+              compact ? _exportControl(withLabel: true) : _exportControl(),
+            ];
+            return compact
+                ? Wrap(spacing: 8, runSpacing: 8, children: controls)
+                : Row(
+                    children: [
+                      Expanded(child: controls[0]),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text('—'),
+                      ),
+                      Expanded(child: controls[1]),
+                      const SizedBox(width: 8),
+                      Expanded(child: controls[2]),
+                      const SizedBox(width: 8),
+                      controls[3],
+                    ],
+                  );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _fromControl() {
+    return OutlinedButton.icon(
+      onPressed: _pickFrom,
+      icon: const Icon(Icons.calendar_today_outlined, size: 16),
+      label: Text(AppFormatters.date(_from)),
+    );
+  }
+
+  Widget _toControl() {
+    return OutlinedButton.icon(
+      onPressed: _pickTo,
+      icon: const Icon(Icons.calendar_today_outlined, size: 16),
+      label: Text(AppFormatters.date(_to)),
+    );
+  }
+
+  Widget _branchControl() {
+    return DropdownButtonFormField<String?>(
+      initialValue: _branchId,
+      isExpanded: true,
+      decoration: const InputDecoration(isDense: true, labelText: 'Branch'),
+      items: [
+        const DropdownMenuItem<String?>(value: null, child: Text('All')),
+        for (final b in _branches)
+          DropdownMenuItem<String?>(
+            value: b['id'] as String,
+            child: Text(b['name'] as String),
+          ),
+      ],
+      onChanged: (v) {
+        setState(() => _branchId = v);
+        _load();
+      },
+    );
+  }
+
+  Widget _exportControl({bool withLabel = false}) {
+    if (withLabel) {
+      return FilledButton.icon(
+        onPressed: _loading ? null : _exportCsv,
+        icon: const Icon(Icons.file_download_outlined, size: 18),
+        label: const Text('Export CSV'),
+      );
+    }
+    return IconButton(
+      tooltip: 'Export CSV',
+      icon: const Icon(Icons.file_download_outlined),
+      onPressed: _loading ? null : _exportCsv,
     );
   }
 
@@ -409,20 +453,32 @@ class _ReportsPageState extends State<ReportsPage> {
         child: Row(
           children: [
             Expanded(
-              child: _stat('Sales (KSh)', AppFormatters.kes(_totalSales),
-                  AppColors.primary),
+              child: _stat(
+                'Sales (KSh)',
+                AppFormatters.kes(_totalSales),
+                AppColors.primary,
+              ),
             ),
             Expanded(
-              child: _stat('Transactions', '$_totalCount',
-                  AppColors.textPrimary),
+              child: _stat(
+                'Transactions',
+                '$_totalCount',
+                AppColors.textPrimary,
+              ),
             ),
             Expanded(
-              child: _stat('Credit (KSh)', AppFormatters.kes(_totalUnpaid),
-                  AppColors.warning),
+              child: _stat(
+                'Credit (KSh)',
+                AppFormatters.kes(_totalUnpaid),
+                AppColors.warning,
+              ),
             ),
             Expanded(
-              child: _stat('Debtors (KSh)', AppFormatters.kes(_debtorTotal),
-                  AppColors.danger),
+              child: _stat(
+                'Debtors (KSh)',
+                AppFormatters.kes(_debtorTotal),
+                AppColors.danger,
+              ),
             ),
           ],
         ),
@@ -439,7 +495,9 @@ class _ReportsPageState extends State<ReportsPage> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-              fontSize: 10.5, color: AppColors.textSecondary),
+            fontSize: 10.5,
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -480,8 +538,12 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Widget _row(String left, String middle, String right,
-      {Color valueColor = AppColors.primary}) {
+  Widget _row(
+    String left,
+    String middle,
+    String right, {
+    Color valueColor = AppColors.primary,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
@@ -492,8 +554,7 @@ class _ReportsPageState extends State<ReportsPage> {
               left,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
             ),
           ),
           Expanded(
@@ -502,7 +563,9 @@ class _ReportsPageState extends State<ReportsPage> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                  fontSize: 12, color: AppColors.textSecondary),
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
           Text(
