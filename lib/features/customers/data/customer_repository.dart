@@ -93,24 +93,21 @@ class CustomerRepository {
   // -------------------------------------------------------------------------
 
   Future<Map<String, List<CustomerContact>>> fetchContactsByCustomer() async {
-    try {
-      final rows = await _db
-          .from('customer_contacts')
-          .select()
-          .order('is_primary', ascending: false);
-      final map = <String, List<CustomerContact>>{};
-      for (final r in rows) {
-        final contact = CustomerContact.fromMap(r);
-        map.putIfAbsent(contact.customerId, () => []).add(contact);
-      }
-      return map;
-    } catch (_) {
-      return {};
+    final rows = await _db
+        .from('customer_contacts')
+        .select()
+        .order('is_primary', ascending: false);
+    final map = <String, List<CustomerContact>>{};
+    for (final r in rows) {
+      final contact = CustomerContact.fromMap(r);
+      map.putIfAbsent(contact.customerId, () => []).add(contact);
     }
+    return map;
   }
 
   Future<Map<String, List<CustomerLocation>>> fetchLocationsByCustomer() async {
     try {
+      // Try with products join first
       final rows = await _db
           .from('customer_locations')
           .select('*, products(name, size_kg, brand)')
@@ -124,8 +121,9 @@ class CustomerRepository {
         map.putIfAbsent(location.customerId, () => []).add(location);
       }
       return map;
-    } catch (_) {
-      // products join may fail if products table is missing — fall back.
+    } catch (e) {
+      // If join fails (e.g., products table missing), fall back to simple query
+      // but re-throw if this also fails so callers know something is wrong
       final rows = await _db
           .from('customer_locations')
           .select()
