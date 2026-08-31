@@ -5,6 +5,7 @@ import 'data/stock_repository.dart';
 import 'models/product.dart';
 import 'models/stock_item.dart';
 import 'order_form_page.dart';
+import 'product_form_page.dart';
 import 'products_page.dart';
 import 'stock_init_page.dart';
 import 'stock_transfers_page.dart';
@@ -371,6 +372,15 @@ class _StockPageState extends State<StockPage> {
     _loadData();
   }
 
+  Future<void> _handleAddProduct() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ProductFormPage()),
+    );
+    if (saved == true) {
+      _loadData();
+    }
+  }
+
   Future<void> _openProductCatalogue() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -536,6 +546,20 @@ class _StockPageState extends State<StockPage> {
                 ),
               ),
               const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: _handleAddProduct,
+                icon: const Icon(Icons.add, size: 16),
+                label: Text(isWide ? 'Add product' : 'Add'),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
               IconButton(
                 tooltip: 'Product catalogue & prices',
                 icon: const Icon(Icons.tune_outlined, size: 20),
@@ -1971,12 +1995,157 @@ class _StockPageState extends State<StockPage> {
 
   // ---------------------------------------------------------------------------
   // Floating Actions (Transfers, Reconcile, Order)
+  // Floating Actions (Add Product, Transfers, Reconcile, Order)
   // ---------------------------------------------------------------------------
 
+  void _showMobileStockActionsSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Inventory Actions',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  child: Icon(Icons.add),
+                ),
+                title: const Text(
+                  'Add new product',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Add gas refills, cylinders, or accessories',
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _handleAddProduct();
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.primaryDark,
+                  foregroundColor: Colors.white,
+                  child: Icon(Icons.swap_horiz_outlined),
+                ),
+                title: const Text(
+                  'Branch transfers',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Transfer cylinders or stock between branches',
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _handleTransfers();
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.textSecondary,
+                  foregroundColor: Colors.white,
+                  child: Icon(Icons.upload_file_outlined),
+                ),
+                title: const Text(
+                  'Count & reconcile stock',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Perform physical count and adjust variances',
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _handleReconcile();
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  child: Icon(Icons.add_shopping_cart),
+                ),
+                title: const Text(
+                  'Place purchase order',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text(
+                  'Order low stock products from suppliers',
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _handleOrder();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFloatingActions(bool isWide) {
+    if (!isWide) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'stock-more-actions-btn',
+            onPressed: _showMobileStockActionsSheet,
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.primary,
+            elevation: 3,
+            tooltip: 'Inventory actions (Transfer, Count, Order)',
+            child: const Icon(Icons.menu_open),
+          ),
+          const SizedBox(width: 8),
+          FloatingActionButton.extended(
+            heroTag: 'stock-add-product-btn',
+            onPressed: _handleAddProduct,
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.add),
+            label: const Text('Add product'),
+          ),
+        ],
+      );
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        FloatingActionButton.extended(
+          heroTag: 'stock-add-product-btn',
+          onPressed: _handleAddProduct,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: const Text('Add product'),
+        ),
+        const SizedBox(width: 8),
         FloatingActionButton.extended(
           heroTag: 'stock-transfers-btn',
           onPressed: _handleTransfers,
@@ -1984,15 +2153,18 @@ class _StockPageState extends State<StockPage> {
           foregroundColor: Colors.white,
           icon: const Icon(Icons.swap_horiz_outlined),
           label: Text(isWide ? 'Branch transfers' : 'Transfer'),
+          label: const Text('Branch transfers'),
         ),
         const SizedBox(width: 8),
         FloatingActionButton.extended(
           heroTag: 'stock-reconcile-btn',
           onPressed: _handleReconcile,
           backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.textSecondary,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.upload_file_outlined),
           label: Text(isWide ? 'Reconcile stock' : 'Count'),
+          label: const Text('Reconcile stock'),
         ),
         const SizedBox(width: 8),
         FloatingActionButton.extended(

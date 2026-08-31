@@ -389,7 +389,8 @@ class _HomeShellState extends State<HomeShell> {
                   _drawerTile(
                     Icons.delivery_dining_outlined,
                     'Deliveries',
-                    () => _openDrawerScreen(const DeliveriesPage(), 'Deliveries'),
+                    () =>
+                        _openDrawerScreen(const DeliveriesPage(), 'Deliveries'),
                   ),
                   _drawerTile(
                     Icons.two_wheeler_outlined,
