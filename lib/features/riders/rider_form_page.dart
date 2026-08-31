@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'data/rider_repository.dart';
+import 'models/rider.dart';
 
-/// Admin: create a rider (auth account + profile with role rider).
+/// Admin: create or edit a rider (auth account + profile).
 class RiderFormPage extends StatefulWidget {
-  const RiderFormPage({super.key});
+  const RiderFormPage({super.key, this.rider});
+
+  final RiderSummary? rider;
 
   @override
   State<RiderFormPage> createState() => _RiderFormPageState();
@@ -26,10 +29,27 @@ class _RiderFormPageState extends State<RiderFormPage> {
   bool _saving = false;
   String? _saveError;
 
+  bool get _isEditing => widget.rider != null;
+
   @override
   void initState() {
     super.initState();
+    final rider = widget.rider;
+    if (rider != null) {
+      _nameCtrl.text = rider.fullName;
+      _phoneCtrl.text = rider.phone ?? '';
+      _branchId = rider.branchId;
+      _loadEmail(rider.id);
+    }
     _loadBranches();
+  }
+
+  Future<void> _loadEmail(String riderId) async {
+    try {
+      final email = await _repo.fetchRiderEmail(riderId);
+      if (!mounted || email == null) return;
+      setState(() => _emailCtrl.text = email);
+    } catch (_) {}
   }
 
   Future<void> _loadBranches() async {
@@ -64,13 +84,23 @@ class _RiderFormPageState extends State<RiderFormPage> {
     });
 
     try {
-      await _repo.createRider(
-        email: _emailCtrl.text.trim(),
-        password: _passwordCtrl.text,
-        fullName: _nameCtrl.text.trim(),
-        phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-        branchId: _branchId,
-      );
+      if (_isEditing) {
+        await _repo.updateRider(
+          riderId: widget.rider!.id,
+          email: _emailCtrl.text.trim(),
+          fullName: _nameCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+          branchId: _branchId,
+        );
+      } else {
+        await _repo.createRider(
+          email: _emailCtrl.text.trim(),
+          password: _passwordCtrl.text,
+          fullName: _nameCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+          branchId: _branchId,
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -85,7 +115,7 @@ class _RiderFormPageState extends State<RiderFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('New rider')),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit rider' : 'New rider')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -155,20 +185,22 @@ class _RiderFormPageState extends State<RiderFormPage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordCtrl,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Login password *',
-                        hintText: 'Min 6 characters',
-                        prefixIcon: Icon(Icons.lock_outline),
+                    if (!_isEditing) ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Login password *',
+                          hintText: 'Min 6 characters',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                        validator: (v) =>
+                            (v == null || v.length < 6)
+                                ? 'Password must be at least 6 characters'
+                                : null,
                       ),
-                      validator: (v) =>
-                          (v == null || v.length < 6)
-                              ? 'Password must be at least 6 characters'
-                              : null,
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -205,8 +237,8 @@ class _RiderFormPageState extends State<RiderFormPage> {
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(Icons.person_add_alt_1),
-              label: const Text('Create rider'),
+                    : Icon(_isEditing ? Icons.save_outlined : Icons.person_add_alt_1),
+                  label: Text(_isEditing ? 'Save rider' : 'Create rider'),
             ),
           ],
         ),

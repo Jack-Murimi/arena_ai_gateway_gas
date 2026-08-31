@@ -4,6 +4,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import 'data/rider_repository.dart';
 import 'models/rider.dart';
+import 'rider_form_page.dart';
 
 /// Admin: single rider's stats + set/edit the monthly target.
 class RiderDetailPage extends StatefulWidget {
@@ -21,6 +22,8 @@ class _RiderDetailPageState extends State<RiderDetailPage> {
   final _amountCtrl = TextEditingController();
   bool _saving = false;
   String? _error;
+  List<Map<String, dynamic>> _branches = [];
+  List<Map<String, dynamic>> _assignments = [];
 
   @override
   void initState() {
@@ -29,6 +32,126 @@ class _RiderDetailPageState extends State<RiderDetailPage> {
     _amountCtrl.text = widget.rider.targetAmount == 0
         ? ''
         : widget.rider.targetAmount.toStringAsFixed(0);
+    _loadAssignments();
+  }
+
+  Future<void> _loadAssignments() async {
+    try {
+      final results = await Future.wait([
+        _repo.fetchBranches(),
+        _repo.fetchTemporaryAssignments(widget.rider.id),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _branches = results[0] as List<Map<String, dynamic>>;
+        _assignments = results[1] as List<Map<String, dynamic>>;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _editRider() async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => RiderFormPage(rider: widget.rider)),
+    );
+    if (saved == true && mounted) Navigator.of(context).pop(true);
+  }
+
+  Future<void> _assignTemporaryBranch() async {
+    if (_branches.isEmpty) return;
+    String? branchId;
+    DateTime startsOn = DateTime.now();
+    DateTime endsOn = DateTime.now().add(const Duration(days: 7));
+    final noteCtrl = TextEditingController();
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Temporary branch assignment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: branchId,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Branch'),
+                items: [
+                  for (final branch in _branches)
+                    DropdownMenuItem(
+                      value: branch['id'] as String,
+                      child: Text(branch['name'] as String),
+                    ),
+                ],
+                onChanged: (value) => setDialogState(() => branchId = value),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: startsOn,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) setDialogState(() => startsOn = picked);
+                },
+                icon: const Icon(Icons.event_outlined),
+                label: Text('Starts ${AppFormatters.date(startsOn)}'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: endsOn,
+                    firstDate: startsOn,
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) setDialogState(() => endsOn = picked);
+                },
+                icon: const Icon(Icons.event_available_outlined),
+                label: Text('Ends ${AppFormatters.date(endsOn)}'),
+              ),
+              TextField(
+                controller: noteCtrl,
+                decoration: const InputDecoration(labelText: 'Note (optional)'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: branchId == null
+                  ? null
+                  : () async {
+                      try {
+                        await _repo.assignTemporaryBranch(
+                          riderId: widget.rider.id,
+                          branchId: branchId!,
+                          startsOn: startsOn,
+                          endsOn: endsOn,
+                          note: noteCtrl.text,
+                        );
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop(true);
+                        }
+                      } catch (e) {
+                        if (dialogContext.mounted) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            SnackBar(content: Text(e.toString())),
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Assign'),
+            ),
+          ],
+        ),
+      ),
+    );
+    noteCtrl.dispose();
+    if (saved == true) _loadAssignments();
   }
 
   @override
@@ -86,7 +209,16 @@ class _RiderDetailPageState extends State<RiderDetailPage> {
   Widget build(BuildContext context) {
     final rider = widget.rider;
     return Scaffold(
-      appBar: AppBar(title: Text(rider.fullName)),
+      appBar: AppBar(
+        title: Text(rider.fullName),
+        actions: [
+          IconButton(
+            tooltip: 'Edit rider',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: _editRider,
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -128,6 +260,53 @@ class _RiderDetailPageState extends State<RiderDetailPage> {
                       ],
                     ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.swap_horiz, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Temporary branch assignments',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Assign temporary branch',
+                        onPressed: _assignTemporaryBranch,
+                        icon: const Icon(Icons.add_business_outlined),
+                      ),
+                    ],
+                  ),
+                  if (_assignments.isEmpty)
+                    const Text(
+                      'No temporary assignments.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    )
+                  else
+                    for (final assignment in _assignments.take(5))
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          (assignment['branches'] as Map?)?['name'] as String? ??
+                              'Branch',
+                        ),
+                        subtitle: Text(
+                          '${assignment['starts_on']} to ${assignment['ends_on']}'
+                          '${assignment['note'] != null ? ' · ${assignment['note']}' : ''}',
+                        ),
+                      ),
                 ],
               ),
             ),

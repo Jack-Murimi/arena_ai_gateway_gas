@@ -91,6 +91,57 @@ class RiderRepository {
     });
   }
 
+  Future<void> updateRider({
+    required String riderId,
+    required String email,
+    required String fullName,
+    String? phone,
+    String? branchId,
+  }) async {
+    await _db.rpc('admin_update_rider', params: {
+      'p_rider_id': riderId,
+      'p_email': email.trim(),
+      'p_full_name': fullName.trim(),
+      'p_phone': phone?.trim(),
+      'p_branch_id': branchId,
+    });
+  }
+
+  Future<String?> fetchRiderEmail(String riderId) async {
+    final result = await _db.rpc('admin_get_rider_email', params: {
+      'p_rider_id': riderId,
+    });
+    return result as String?;
+  }
+
+  Future<String> assignTemporaryBranch({
+    required String riderId,
+    required String branchId,
+    required DateTime startsOn,
+    required DateTime endsOn,
+    String? note,
+  }) async {
+    final result = await _db.rpc('admin_assign_rider_branch', params: {
+      'p_rider_id': riderId,
+      'p_branch_id': branchId,
+      'p_starts_on': startsOn.toIso8601String().substring(0, 10),
+      'p_ends_on': endsOn.toIso8601String().substring(0, 10),
+      'p_note': note,
+    });
+    return result as String;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchTemporaryAssignments(
+    String riderId,
+  ) async {
+    final rows = await _db
+        .from('rider_branch_assignments')
+        .select('*, branches(name)')
+        .eq('rider_id', riderId)
+        .order('starts_on', ascending: false);
+    return List<Map<String, dynamic>>.from(rows);
+  }
+
   Future<void> setTarget({
     required String riderId,
     required String month, // yyyy-MM-dd
