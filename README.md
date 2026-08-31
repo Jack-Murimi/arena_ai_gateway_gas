@@ -56,6 +56,21 @@ flutter run -d chrome       # web
 flutter run -d <device-id>  # Android/anything
 ```
 
+### 3. Deploy the web app to Netlify
+
+1. Push this repository to GitHub.
+2. In Netlify, choose **Add new project → Import an existing project** and select the GitHub repository.
+3. Netlify will use the included `netlify.toml` configuration:
+  - Build command: `bash tool/netlify_build.sh`
+  - Publish directory: `build/web`
+4. In **Site configuration → Environment variables**, add:
+  - `SUPABASE_URL`: your Supabase project URL
+  - `SUPABASE_PUBLISHABLE_KEY`: your Supabase publishable key
+5. Deploy the site. The included SPA redirect keeps Flutter routes working after refresh.
+
+The publishable key is safe for a client-side web build. Never add a database
+password or Supabase service-role key to Netlify variables or the repository.
+
 ## Project layout
 
 ```
