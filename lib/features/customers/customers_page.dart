@@ -22,8 +22,8 @@ class _CustomersPageState extends State<CustomersPage> {
   final _searchCtrl = TextEditingController();
 
   List<Customer> _customers = [];
-  Map<String, List<CustomerContact>> _contacts = {};
-  Map<String, List<CustomerLocation>> _locations = {};
+  Map<String, CustomerContact?> _primaryContacts = {};
+  Map<String, CustomerLocation?> _primaryLocations = {};
   bool _loading = true;
   String? _error;
 
@@ -50,13 +50,14 @@ class _CustomersPageState extends State<CustomersPage> {
     });
     try {
       final customers = await _repo.fetchCustomers(search: _searchCtrl.text);
-      final contacts = await _repo.fetchContactsByCustomer();
-      final locations = await _repo.fetchLocationsByCustomer();
+      // Use optimized methods that only fetch primary contacts/locations
+      final primaryContacts = await _repo.fetchPrimaryContactsByCustomer();
+      final primaryLocations = await _repo.fetchPrimaryLocationsByCustomer();
       if (!mounted) return;
       setState(() {
         _customers = customers;
-        _contacts = contacts;
-        _locations = locations;
+        _primaryContacts = primaryContacts;
+        _primaryLocations = primaryLocations;
         _loading = false;
       });
     } catch (e) {
@@ -145,8 +146,8 @@ class _CustomersPageState extends State<CustomersPage> {
         final customer = _customers[i];
         return _CustomerTile(
           customer: customer,
-          primaryContact: _contacts[customer.id]?.firstOrNull,
-          primaryLocation: _locations[customer.id]?.firstOrNull,
+          primaryContact: _primaryContacts[customer.id],
+          primaryLocation: _primaryLocations[customer.id],
           onTap: () => _openDetail(customer),
         );
       },

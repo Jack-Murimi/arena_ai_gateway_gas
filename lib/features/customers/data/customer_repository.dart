@@ -137,6 +137,65 @@ class CustomerRepository {
     }
   }
 
+  /// Fetches only the primary contact for each customer (optimized for list views)
+  /// Returns a map of customer_id -> primary contact (or null if none)
+  Future<Map<String, CustomerContact?>> fetchPrimaryContactsByCustomer() async {
+    final rows = await _db
+        .from('customer_contacts')
+        .select()
+        .eq('is_primary', true)
+        .order('created_at', ascending: true);
+    final map = <String, CustomerContact?>{};
+    for (final r in rows) {
+      final contact = CustomerContact.fromMap(r);
+      // Only keep the first primary contact per customer
+      if (!map.containsKey(contact.customerId)) {
+        map[contact.customerId] = contact;
+      }
+    }
+    return map;
+  }
+
+  /// Fetches only the primary location for each customer (optimized for list views)
+  /// Returns a map of customer_id -> primary location (or null if none)
+  Future<Map<String, CustomerLocation?>>
+  fetchPrimaryLocationsByCustomer() async {
+    try {
+      final rows = await _db
+          .from('customer_locations')
+          .select('*, products(name, size_kg, brand)')
+          .eq('is_primary', true)
+          .order('created_at', ascending: true);
+      final map = <String, CustomerLocation?>{};
+      for (final r in rows) {
+        final location = CustomerLocation.fromMap(
+          r,
+          productMap: r['products'] as Map<String, dynamic>?,
+        );
+        // Only keep the first primary location per customer
+        if (!map.containsKey(location.customerId)) {
+          map[location.customerId] = location;
+        }
+      }
+      return map;
+    } catch (e) {
+      // If join fails, fall back to simple query
+      final rows = await _db
+          .from('customer_locations')
+          .select()
+          .eq('is_primary', true)
+          .order('created_at', ascending: true);
+      final map = <String, CustomerLocation?>{};
+      for (final r in rows) {
+        final location = CustomerLocation.fromMap(r);
+        if (!map.containsKey(location.customerId)) {
+          map[location.customerId] = location;
+        }
+      }
+      return map;
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Products (for the "default cylinder" picker)
   // -------------------------------------------------------------------------
