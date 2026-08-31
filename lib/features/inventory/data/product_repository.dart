@@ -30,6 +30,11 @@ class ProductRepository {
     return rows.map(Product.fromMap).toList();
   }
 
+  Future<Product?> fetchProductById(String id) async {
+    final row = await _db.from('products').select().eq('id', id).maybeSingle();
+    return row == null ? null : Product.fromMap(row);
+  }
+
   Future<void> saveProduct({
     String? productId,
     required String name,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import 'data/product_repository.dart';
 import 'data/stock_repository.dart';
 import 'models/product.dart';
 import 'models/stock_item.dart';
@@ -379,6 +380,19 @@ class _StockPageState extends State<StockPage> {
     if (saved == true) {
       _loadData();
     }
+  }
+
+  Future<void> _handleEditProduct(String productId) async {
+    try {
+      final product = await ProductRepository().fetchProductById(productId);
+      if (product == null || !mounted) return;
+      final saved = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => ProductFormPage(product: product)),
+      );
+      if (saved == true) {
+        _loadData();
+      }
+    } catch (_) {}
   }
 
   Future<void> _openProductCatalogue() async {
@@ -1071,43 +1085,65 @@ class _StockPageState extends State<StockPage> {
 
                 return DataRow(
                   cells: [
-                    // Product name & size
+                    // Product name & size (clickable to edit)
                     DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            row.productType.icon,
-                            size: 16,
-                            color: AppColors.primary,
+                      InkWell(
+                        onTap: () => _handleEditProduct(row.productId),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 2,
                           ),
-                          const SizedBox(width: 8),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                row.productName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
+                              Icon(
+                                row.productType.icon,
+                                size: 16,
+                                color: AppColors.primary,
                               ),
-                              if (row.brand != null || row.sizeKg != null)
-                                Text(
-                                  [
-                                    if (row.brand != null) row.brand,
-                                    if (row.sizeKg != null)
-                                      _sizeLabel(row.sizeKg),
-                                  ].join(' • '),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
+                              const SizedBox(width: 8),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        row.productName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.edit_outlined,
+                                        size: 13,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                  if (row.brand != null || row.sizeKg != null)
+                                    Text(
+                                      [
+                                        if (row.brand != null) row.brand,
+                                        if (row.sizeKg != null)
+                                          _sizeLabel(row.sizeKg),
+                                      ].join(' • '),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
 
@@ -1172,14 +1208,26 @@ class _StockPageState extends State<StockPage> {
 
                     // Action
                     DataCell(
-                      TextButton.icon(
-                        icon: const Icon(Icons.swap_horiz, size: 16),
-                        label: const Text('Transfer'),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          foregroundColor: AppColors.primary,
-                        ),
-                        onPressed: _handleTransfers,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 16),
+                            tooltip: 'Edit product',
+                            visualDensity: VisualDensity.compact,
+                            color: AppColors.textSecondary,
+                            onPressed: () => _handleEditProduct(row.productId),
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            label: const Text('Transfer'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              foregroundColor: AppColors.primary,
+                            ),
+                            onPressed: _handleTransfers,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1266,41 +1314,63 @@ class _StockPageState extends State<StockPage> {
                 return DataRow(
                   cells: [
                     DataCell(
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            row.productType.icon,
-                            size: 16,
-                            color: AppColors.primary,
+                      InkWell(
+                        onTap: () => _handleEditProduct(row.productId),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 2,
                           ),
-                          const SizedBox(width: 8),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                row.productName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                ),
+                              Icon(
+                                row.productType.icon,
+                                size: 16,
+                                color: AppColors.primary,
                               ),
-                              if (row.brand != null || row.sizeKg != null)
-                                Text(
-                                  [
-                                    if (row.brand != null) row.brand,
-                                    if (row.sizeKg != null)
-                                      _sizeLabel(row.sizeKg),
-                                  ].join(' • '),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
+                              const SizedBox(width: 8),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        row.productName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.edit_outlined,
+                                        size: 13,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                  if (row.brand != null || row.sizeKg != null)
+                                    Text(
+                                      [
+                                        if (row.brand != null) row.brand,
+                                        if (row.sizeKg != null)
+                                          _sizeLabel(row.sizeKg),
+                                      ].join(' • '),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                     DataCell(_typeBadge(row.productType)),
@@ -1329,14 +1399,26 @@ class _StockPageState extends State<StockPage> {
                           : _statusBadge(isOut: isOut, isLow: isLow),
                     ),
                     DataCell(
-                      TextButton.icon(
-                        icon: const Icon(Icons.swap_horiz, size: 16),
-                        label: const Text('Transfer'),
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          foregroundColor: AppColors.primary,
-                        ),
-                        onPressed: _handleTransfers,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 16),
+                            tooltip: 'Edit product',
+                            visualDensity: VisualDensity.compact,
+                            color: AppColors.textSecondary,
+                            onPressed: () => _handleEditProduct(row.productId),
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.swap_horiz, size: 16),
+                            label: const Text('Transfer'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              foregroundColor: AppColors.primary,
+                            ),
+                            onPressed: _handleTransfers,
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1380,6 +1462,7 @@ class _StockPageState extends State<StockPage> {
 
     return Card(
       margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
@@ -1390,145 +1473,160 @@ class _StockPageState extends State<StockPage> {
               : AppColors.border,
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  foregroundColor: AppColors.primary,
-                  child: Icon(row.productType.icon, size: 16),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        row.productName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          _typeBadge(row.productType),
-                          if (row.brand != null || row.sizeKg != null) ...[
-                            const SizedBox(width: 6),
+      child: InkWell(
+        onTap: () => _handleEditProduct(row.productId),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    foregroundColor: AppColors.primary,
+                    child: Icon(row.productType.icon, size: 16),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
                             Expanded(
                               child: Text(
-                                [
-                                  if (row.brand != null) row.brand,
-                                  if (row.sizeKg != null)
-                                    _sizeLabel(row.sizeKg),
-                                ].join(' • '),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                row.productName,
                                 style: const TextStyle(
-                                  fontSize: 11.5,
-                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.edit_outlined,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                           ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // Big Stock Quantity Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: badgeFg.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isService)
-                        const Text(
-                          'Service',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textSecondary,
-                          ),
-                        )
-                      else ...[
-                        Text(
-                          '$qty',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: badgeFg,
-                          ),
                         ),
-                        Text(
-                          isOut
-                              ? 'Out of stock'
-                              : isLow
-                              ? 'Low stock'
-                              : 'In stock',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: badgeFg,
-                          ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            _typeBadge(row.productType),
+                            if (row.brand != null || row.sizeKg != null) ...[
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  [
+                                    if (row.brand != null) row.brand,
+                                    if (row.sizeKg != null)
+                                      _sizeLabel(row.sizeKg),
+                                  ].join(' • '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // If All branches is selected, show per-branch breakdown pill row
-            if (_isAllBranches && _branches.isNotEmpty) ...[
-              const Divider(height: 16),
-              Row(
-                children: [
-                  const Text(
-                    'Branches: ',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textSecondary,
                     ),
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (final b in _branches) ...[
-                            _branchPill(
-                              branchName: b['name'] as String,
-                              qty: row.branchQuantities[b['id']] ?? 0,
+                  const SizedBox(width: 8),
+                  // Big Stock Quantity Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: badgeFg.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isService)
+                          const Text(
+                            'Service',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textSecondary,
                             ),
-                            const SizedBox(width: 6),
-                          ],
+                          )
+                        else ...[
+                          Text(
+                            '$qty',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: badgeFg,
+                            ),
+                          ),
+                          Text(
+                            isOut
+                                ? 'Out of stock'
+                                : isLow
+                                ? 'Low stock'
+                                : 'In stock',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: badgeFg,
+                            ),
+                          ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
                 ],
               ),
+
+              // If All branches is selected, show per-branch breakdown pill row
+              if (_isAllBranches && _branches.isNotEmpty) ...[
+                const Divider(height: 16),
+                Row(
+                  children: [
+                    const Text(
+                      'Branches: ',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final b in _branches) ...[
+                              _branchPill(
+                                branchName: b['name'] as String,
+                                qty: row.branchQuantities[b['id']] ?? 0,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -1844,7 +1942,11 @@ class _StockPageState extends State<StockPage> {
               ),
               const SizedBox(height: 4),
               for (final g in gas)
-                _fleetBrandRow(g.brand ?? g.productName, g.quantity),
+                _fleetBrandRow(
+                  g.brand ?? g.productName,
+                  g.quantity,
+                  g.productId,
+                ),
               _fleetSubtotalRow('Gas subtotal', gasQty, AppColors.primary),
             ],
             if (empty.isNotEmpty) ...[
@@ -1860,7 +1962,11 @@ class _StockPageState extends State<StockPage> {
               ),
               const SizedBox(height: 4),
               for (final e in empty)
-                _fleetBrandRow(e.brand ?? e.productName, e.quantity),
+                _fleetBrandRow(
+                  e.brand ?? e.productName,
+                  e.quantity,
+                  e.productId,
+                ),
               _fleetSubtotalRow(
                 'Empty subtotal',
                 emptyQty,
@@ -1873,24 +1979,50 @@ class _StockPageState extends State<StockPage> {
     );
   }
 
-  Widget _fleetBrandRow(String brand, int qty) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.5),
-      child: Row(
-        children: [
-          const SizedBox(width: 4),
-          const Icon(Icons.circle, size: 6, color: AppColors.textSecondary),
-          const SizedBox(width: 8),
-          Expanded(child: Text(brand, style: const TextStyle(fontSize: 13))),
-          Text(
-            '$qty',
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+  Widget _fleetBrandRow(String brand, int qty, [String? productId]) {
+    return InkWell(
+      onTap: productId != null && productId.isNotEmpty
+          ? () => _handleEditProduct(productId)
+          : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+        child: Row(
+          children: [
+            const Icon(Icons.circle, size: 6, color: AppColors.textSecondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      brand,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (productId != null && productId.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.edit_outlined,
+                      size: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+            Text(
+              '$qty',
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
