@@ -25,6 +25,9 @@ class _CustomersPageState extends State<CustomersPage> {
   bool _loading = true;
   String? _error;
 
+  // Debounce timer for search
+  Timer? _searchTimer;
+
   @override
   void initState() {
     super.initState();
@@ -33,6 +36,7 @@ class _CustomersPageState extends State<CustomersPage> {
 
   @override
   void dispose() {
+    _searchTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -64,18 +68,14 @@ class _CustomersPageState extends State<CustomersPage> {
 
   Future<void> _openForm({Customer? customer}) async {
     final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => CustomerFormPage(customer: customer),
-      ),
+      MaterialPageRoute(builder: (_) => CustomerFormPage(customer: customer)),
     );
     if (saved == true) _load();
   }
 
   Future<void> _openDetail(Customer customer) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CustomerDetailPage(customer: customer),
-      ),
+      MaterialPageRoute(builder: (_) => CustomerDetailPage(customer: customer)),
     );
     _load();
   }
@@ -90,7 +90,17 @@ class _CustomersPageState extends State<CustomersPage> {
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
               child: TextField(
                 controller: _searchCtrl,
-                onChanged: (_) => _load(),
+                onChanged: (value) {
+                  // Cancel previous timer
+                  _searchTimer?.cancel();
+
+                  // Start new debounce timer (500ms delay)
+                  _searchTimer = Timer(const Duration(milliseconds: 500), () {
+                    if (mounted) {
+                      _load();
+                    }
+                  });
+                },
                 decoration: const InputDecoration(
                   hintText: 'Search customers…',
                   prefixIcon: Icon(Icons.search),
@@ -220,8 +230,10 @@ class _CustomerTile extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: (owes ? AppColors.danger : AppColors.success)
                       .withValues(alpha: 0.1),
@@ -265,7 +277,11 @@ class _EmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.people_outline, size: 56, color: AppColors.primary),
+              const Icon(
+                Icons.people_outline,
+                size: 56,
+                color: AppColors.primary,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'No customers yet',
