@@ -373,10 +373,13 @@ class _HomeShellState extends State<HomeShell> {
                   ),
                   child: Row(
                     children: [
-                      IconButton(
-                        tooltip: 'Menu',
-                        icon: const Icon(Icons.menu, color: Colors.white),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      Builder(
+                        builder: (menuContext) => IconButton(
+                          tooltip: 'Menu',
+                          icon: const Icon(Icons.menu, color: Colors.white),
+                          onPressed: () =>
+                              Scaffold.of(menuContext).openDrawer(),
+                        ),
                       ),
                       const SizedBox(width: 4),
                       Text(
