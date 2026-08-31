@@ -285,7 +285,6 @@ class _HomeShellState extends State<HomeShell> {
     }
 
     return Scaffold(
-      drawer: _buildDrawer(context),
       body: Row(
         children: [
           NavigationRail(
@@ -350,47 +349,31 @@ class _HomeShellState extends State<HomeShell> {
                 label: Text('Settings'),
               ),
             ],
-            trailing: Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: userMenu,
-                ),
-              ),
-            ),
           ),
           const VerticalDivider(width: 1, thickness: 1),
           Expanded(
             child: Column(
               children: [
-                Container(
-                  width: double.infinity,
-                  color: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      Builder(
-                        builder: (menuContext) => IconButton(
-                          tooltip: 'Menu',
-                          icon: const Icon(Icons.menu, color: Colors.white),
-                          onPressed: () =>
-                              Scaffold.of(menuContext).openDrawer(),
+                SafeArea(
+                  bottom: false,
+                  child: Container(
+                    width: double.infinity,
+                    color: AppColors.surface,
+                    padding: const EdgeInsets.fromLTRB(24, 12, 16, 12),
+                    child: Row(
+                      children: [
+                        Text(
+                          _titles[_index],
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _titles[_index],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                        const Spacer(),
+                        userMenu,
+                      ],
+                    ),
                   ),
                 ),
                 Expanded(child: content),
