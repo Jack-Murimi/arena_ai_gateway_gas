@@ -50,6 +50,10 @@ class _HomeShellState extends State<HomeShell> {
 
   void _openDrawerScreen(Widget screen, String title) {
     Navigator.pop(context); // close the drawer
+    _openSecondaryScreen(screen, title);
+  }
+
+  void _openSecondaryScreen(Widget screen, String title) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => Scaffold(
@@ -57,6 +61,178 @@ class _HomeShellState extends State<HomeShell> {
           body: screen,
         ),
       ),
+    );
+  }
+
+  Widget _buildDesktopSidebar() {
+    return Container(
+      color: AppColors.primaryDark,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(12, 18, 12, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 22),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.local_fire_department,
+                      color: AppColors.accent,
+                      size: 30,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      'Gateway Gas',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 17,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _desktopSectionHeader('Workspace'),
+              _desktopPrimaryTile(0, Icons.dashboard_outlined, 'Dashboard'),
+              _desktopPrimaryTile(1, Icons.point_of_sale_outlined, 'Sales'),
+              _desktopPrimaryTile(2, Icons.inventory_2_outlined, 'Stock'),
+              _desktopPrimaryTile(3, Icons.people_outline, 'Customers'),
+              _desktopPrimaryTile(4, Icons.settings_outlined, 'Settings'),
+              _desktopSectionHeader('Analytics'),
+              _desktopSecondaryTile(
+                Icons.bar_chart_outlined,
+                'Reports',
+                const ReportsPage(),
+              ),
+              _desktopSectionHeader('Stock & suppliers'),
+              _desktopSecondaryTile(
+                Icons.swap_horiz_outlined,
+                'Stock transfers',
+                const StockTransfersPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.shopping_basket_outlined,
+                'Purchase orders',
+                const PurchaseOrdersPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.local_shipping_outlined,
+                'Suppliers',
+                const SuppliersPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.price_check_outlined,
+                'Supplier prices',
+                const SupplierPricesPage(),
+              ),
+              _desktopSectionHeader('Operations'),
+              _desktopSecondaryTile(
+                Icons.delivery_dining_outlined,
+                'Deliveries',
+                const DeliveriesPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.two_wheeler_outlined,
+                'Riders',
+                const RidersPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.cyclone_outlined,
+                'Cylinder fleet',
+                const CylinderFleetPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.cyclone_outlined,
+                'Cylinder tracking',
+                const CylinderTrackingPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.flag_outlined,
+                'Cylinder follow-ups',
+                const ExchangeAlertsPage(),
+              ),
+              const SizedBox(height: 18),
+              ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                leading: const Icon(Icons.logout, color: AppColors.danger),
+                title: const Text(
+                  'Sign out',
+                  style: TextStyle(
+                    color: AppColors.danger,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                onTap: () => context.read<AuthController>().signOut(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _desktopSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 6),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white54,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _desktopPrimaryTile(int index, IconData icon, String label) {
+    final selected = _index == index;
+    return ListTile(
+      dense: true,
+      selected: selected,
+      selectedTileColor: AppColors.primary.withValues(alpha: 0.7),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      leading: Icon(
+        icon,
+        color: selected ? AppColors.accent : Colors.white70,
+      ),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: selected ? Colors.white : Colors.white70,
+          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+        ),
+      ),
+      onTap: () => setState(() => _index = index),
+    );
+  }
+
+  Widget _desktopSecondaryTile(IconData icon, String label, Widget screen) {
+    return ListTile(
+      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      leading: const SizedBox(width: 20),
+      title: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.white70),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+      onTap: () => _openSecondaryScreen(screen, label),
     );
   }
 
@@ -287,69 +463,7 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: Row(
         children: [
-          NavigationRail(
-            extended: true,
-            minExtendedWidth: 210,
-            selectedIndex: _index,
-            onDestinationSelected: (i) => setState(() => _index = i),
-            backgroundColor: AppColors.primaryDark,
-            selectedIconTheme: const IconThemeData(color: AppColors.accent),
-            selectedLabelTextStyle: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-            unselectedIconTheme: const IconThemeData(color: Colors.white70),
-            unselectedLabelTextStyle: const TextStyle(color: Colors.white70),
-            leading: const Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.local_fire_department,
-                    color: AppColors.accent,
-                    size: 32,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    'Gateway Gas',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard),
-                label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.point_of_sale_outlined),
-                selectedIcon: Icon(Icons.point_of_sale),
-                label: Text('Sales'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.inventory_2_outlined),
-                selectedIcon: Icon(Icons.inventory_2),
-                label: Text('Stock'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.people_outline),
-                selectedIcon: Icon(Icons.people),
-                label: Text('Customers'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: Text('Settings'),
-              ),
-            ],
-          ),
+          SizedBox(width: 270, child: _buildDesktopSidebar()),
           const VerticalDivider(width: 1, thickness: 1),
           Expanded(
             child: Column(
