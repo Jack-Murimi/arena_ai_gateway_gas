@@ -195,10 +195,9 @@ class _RiderFormPageState extends State<RiderFormPage> {
                           hintText: 'Min 6 characters',
                           prefixIcon: Icon(Icons.lock_outline),
                         ),
-                        validator: (v) =>
-                            (v == null || v.length < 6)
-                                ? 'Password must be at least 6 characters'
-                                : null,
+                        validator: (v) => (v == null || v.length < 6)
+                            ? 'Password must be at least 6 characters'
+                            : null,
                       ),
                     ],
                   ],
@@ -237,8 +236,10 @@ class _RiderFormPageState extends State<RiderFormPage> {
                         color: Colors.white,
                       ),
                     )
-                    : Icon(_isEditing ? Icons.save_outlined : Icons.person_add_alt_1),
-                  label: Text(_isEditing ? 'Save rider' : 'Create rider'),
+                  : Icon(
+                      _isEditing ? Icons.save_outlined : Icons.person_add_alt_1,
+                    ),
+              label: Text(_isEditing ? 'Save rider' : 'Create rider'),
             ),
           ],
         ),

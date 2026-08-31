@@ -6,6 +6,7 @@ import '../auth/auth_controller.dart';
 import '../customers/customers_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../deliveries/deliveries_page.dart';
+import '../inventory/products_page.dart';
 import '../inventory/purchase_orders_page.dart';
 import '../inventory/stock_page.dart';
 import '../inventory/stock_transfers_page.dart';
@@ -155,6 +156,11 @@ class _HomeShellState extends State<HomeShell> {
                 Icons.bar_chart_outlined,
                 'Reports',
                 const ReportsPage(),
+              ),
+              _desktopSecondaryTile(
+                Icons.category_outlined,
+                'Product catalogue',
+                const ProductsPage(),
               ),
               _desktopSectionHeader('Stock & suppliers'),
               _desktopSecondaryTile(
@@ -337,6 +343,12 @@ class _HomeShellState extends State<HomeShell> {
               Icons.inventory_outlined,
               'Stock levels',
               () => _openDrawerScreen(const StockPage(), 'Stock levels'),
+            ),
+            _drawerTile(
+              Icons.category_outlined,
+              'Product catalogue',
+              () =>
+                  _openDrawerScreen(const ProductsPage(), 'Product catalogue'),
             ),
             _drawerTile(
               Icons.swap_horiz_outlined,

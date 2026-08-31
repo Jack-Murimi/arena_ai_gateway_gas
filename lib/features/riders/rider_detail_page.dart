@@ -43,8 +43,8 @@ class _RiderDetailPageState extends State<RiderDetailPage> {
       ]);
       if (!mounted) return;
       setState(() {
-        _branches = results[0] as List<Map<String, dynamic>>;
-        _assignments = results[1] as List<Map<String, dynamic>>;
+        _branches = results[0];
+        _assignments = results[1];
       });
     } catch (_) {}
   }
@@ -138,9 +138,9 @@ class _RiderDetailPageState extends State<RiderDetailPage> {
                         }
                       } catch (e) {
                         if (dialogContext.mounted) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            SnackBar(content: Text(e.toString())),
-                          );
+                          ScaffoldMessenger.of(
+                            dialogContext,
+                          ).showSnackBar(SnackBar(content: Text(e.toString())));
                         }
                       }
                     },
@@ -299,7 +299,8 @@ class _RiderDetailPageState extends State<RiderDetailPage> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                         title: Text(
-                          (assignment['branches'] as Map?)?['name'] as String? ??
+                          (assignment['branches'] as Map?)?['name']
+                                  as String? ??
                               'Branch',
                         ),
                         subtitle: Text(

@@ -36,12 +36,8 @@ class RiderRepository {
       // view or targets may be missing — treat as empty
     }
 
-    final statsByRider = {
-      for (final s in stats) s['rider_id'] as String: s,
-    };
-    final targetByRider = {
-      for (final t in targets) t['rider_id'] as String: t,
-    };
+    final statsByRider = {for (final s in stats) s['rider_id'] as String: s};
+    final targetByRider = {for (final t in targets) t['rider_id'] as String: t};
 
     final summaries = <RiderSummary>[
       for (final entry in statsByRider.entries)
@@ -82,13 +78,16 @@ class RiderRepository {
     String? phone,
     String? branchId,
   }) async {
-    await _db.rpc('admin_create_rider', params: {
-      'p_email': email.trim(),
-      'p_password': password,
-      'p_full_name': fullName.trim(),
-      'p_phone': phone?.trim(),
-      'p_branch_id': branchId,
-    });
+    await _db.rpc(
+      'admin_create_rider',
+      params: {
+        'p_email': email.trim(),
+        'p_password': password,
+        'p_full_name': fullName.trim(),
+        'p_phone': phone?.trim(),
+        'p_branch_id': branchId,
+      },
+    );
   }
 
   Future<void> updateRider({
@@ -98,19 +97,23 @@ class RiderRepository {
     String? phone,
     String? branchId,
   }) async {
-    await _db.rpc('admin_update_rider', params: {
-      'p_rider_id': riderId,
-      'p_email': email.trim(),
-      'p_full_name': fullName.trim(),
-      'p_phone': phone?.trim(),
-      'p_branch_id': branchId,
-    });
+    await _db.rpc(
+      'admin_update_rider',
+      params: {
+        'p_rider_id': riderId,
+        'p_email': email.trim(),
+        'p_full_name': fullName.trim(),
+        'p_phone': phone?.trim(),
+        'p_branch_id': branchId,
+      },
+    );
   }
 
   Future<String?> fetchRiderEmail(String riderId) async {
-    final result = await _db.rpc('admin_get_rider_email', params: {
-      'p_rider_id': riderId,
-    });
+    final result = await _db.rpc(
+      'admin_get_rider_email',
+      params: {'p_rider_id': riderId},
+    );
     return result as String?;
   }
 
@@ -121,13 +124,16 @@ class RiderRepository {
     required DateTime endsOn,
     String? note,
   }) async {
-    final result = await _db.rpc('admin_assign_rider_branch', params: {
-      'p_rider_id': riderId,
-      'p_branch_id': branchId,
-      'p_starts_on': startsOn.toIso8601String().substring(0, 10),
-      'p_ends_on': endsOn.toIso8601String().substring(0, 10),
-      'p_note': note,
-    });
+    final result = await _db.rpc(
+      'admin_assign_rider_branch',
+      params: {
+        'p_rider_id': riderId,
+        'p_branch_id': branchId,
+        'p_starts_on': startsOn.toIso8601String().substring(0, 10),
+        'p_ends_on': endsOn.toIso8601String().substring(0, 10),
+        'p_note': note,
+      },
+    );
     return result as String;
   }
 
@@ -148,12 +154,15 @@ class RiderRepository {
     required int targetDeliveries,
     required double targetAmount,
   }) async {
-    await _db.rpc('admin_set_rider_target', params: {
-      'p_rider_id': riderId,
-      'p_month': month,
-      'p_target_deliveries': targetDeliveries,
-      'p_target_amount': targetAmount,
-    });
+    await _db.rpc(
+      'admin_set_rider_target',
+      params: {
+        'p_rider_id': riderId,
+        'p_month': month,
+        'p_target_deliveries': targetDeliveries,
+        'p_target_amount': targetAmount,
+      },
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -185,9 +194,12 @@ class RiderRepository {
   }
 
   Future<void> markDelivered(String deliveryId) async {
-    await _db.from('deliveries').update({
-      'status': 'delivered',
-      'delivered_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', deliveryId);
+    await _db
+        .from('deliveries')
+        .update({
+          'status': 'delivered',
+          'delivered_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', deliveryId);
   }
 }

@@ -11,7 +11,10 @@ class ProductRepository {
   // Products
   // -------------------------------------------------------------------------
 
-  Future<List<Product>> fetchProducts({String? search, ProductType? type}) async {
+  Future<List<Product>> fetchProducts({
+    String? search,
+    ProductType? type,
+  }) async {
     var query = _db.from('products').select();
     final term = search?.trim();
     if (term != null && term.isNotEmpty) {
@@ -53,11 +56,40 @@ class ProductRepository {
     }
   }
 
+  Future<void> createRefillWithCylinder({
+    required String refillName,
+    required String brand,
+    required double sizeKg,
+    required double refillSalePrice,
+    required double refillCostPrice,
+    required String cylinderName,
+    required double cylinderSalePrice,
+    required double cylinderCostPrice,
+    required int lowStockThreshold,
+  }) async {
+    await _db.rpc(
+      'create_refill_with_cylinder',
+      params: {
+        'p_refill_name': refillName,
+        'p_brand': brand,
+        'p_size_kg': sizeKg,
+        'p_refill_sale_price': refillSalePrice,
+        'p_refill_cost_price': refillCostPrice,
+        'p_cylinder_name': cylinderName,
+        'p_cylinder_sale_price': cylinderSalePrice,
+        'p_cylinder_cost_price': cylinderCostPrice,
+        'p_low_stock_threshold': lowStockThreshold,
+      },
+    );
+  }
+
   // -------------------------------------------------------------------------
   // Price change approvals
   // -------------------------------------------------------------------------
 
-  Future<List<PriceChangeRequest>> fetchPriceChangeRequests({String? status}) async {
+  Future<List<PriceChangeRequest>> fetchPriceChangeRequests({
+    String? status,
+  }) async {
     // Read from price_change_requests_view so names of the people involved
     // are visible to all authenticated users (profiles RLS would hide them).
     var query = _db.from('price_change_requests_view').select();
@@ -87,11 +119,14 @@ class ProductRepository {
           .eq('id', request['product_id']);
     }
 
-    await _db.from('price_change_requests').update({
-      'status': confirm ? 'confirmed' : 'rejected',
-      'confirmed_by': profile?['id'],
-      'confirmed_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', requestId);
+    await _db
+        .from('price_change_requests')
+        .update({
+          'status': confirm ? 'confirmed' : 'rejected',
+          'confirmed_by': profile?['id'],
+          'confirmed_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', requestId);
   }
 
   // -------------------------------------------------------------------------

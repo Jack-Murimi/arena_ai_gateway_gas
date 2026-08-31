@@ -24,10 +24,14 @@ class _ProductFormPageState extends State<ProductFormPage> {
   final _brandCtrl = TextEditingController();
   final _saleCtrl = TextEditingController();
   final _costCtrl = TextEditingController();
+  final _cylinderNameCtrl = TextEditingController();
+  final _cylinderSaleCtrl = TextEditingController();
+  final _cylinderCostCtrl = TextEditingController();
   final _thresholdCtrl = TextEditingController();
 
   ProductType _type = ProductType.refill;
   double? _sizeKg;
+  bool _createMatchingCylinder = true;
   bool _saving = false;
   String? _saveError;
 
@@ -63,6 +67,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _brandCtrl.dispose();
     _saleCtrl.dispose();
     _costCtrl.dispose();
+    _cylinderNameCtrl.dispose();
+    _cylinderSaleCtrl.dispose();
+    _cylinderCostCtrl.dispose();
     _thresholdCtrl.dispose();
     super.dispose();
   }
@@ -75,17 +82,49 @@ class _ProductFormPageState extends State<ProductFormPage> {
       _saveError = null;
     });
 
+    final cylinderName = _cylinderNameCtrl.text.trim().isEmpty
+        ? '${_brandCtrl.text.trim()} Empty ${Product.formatSizeKg(_sizeKg)}'
+        : _cylinderNameCtrl.text.trim();
+
     try {
-      await _repo.saveProduct(
-        productId: widget.product?.id,
-        name: _nameCtrl.text.trim(),
-        productType: _type,
-        sizeKg: _hasSize ? _sizeKg : null,
-        brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
-        salePrice: double.parse(_saleCtrl.text.trim()),
-        costPrice: double.parse(_costCtrl.text.trim()),
-        lowStockThreshold: int.tryParse(_thresholdCtrl.text.trim()) ?? 5,
-      );
+      if (!_isEditing &&
+          _type == ProductType.refill &&
+          _createMatchingCylinder) {
+        final cylinderSale = double.tryParse(_cylinderSaleCtrl.text.trim());
+        final cylinderCost = double.tryParse(_cylinderCostCtrl.text.trim());
+        if (cylinderSale == null ||
+            cylinderSale < 0 ||
+            cylinderCost == null ||
+            cylinderCost < 0) {
+          setState(() {
+            _saving = false;
+            _saveError = 'Enter valid prices for the matching cylinder.';
+          });
+          return;
+        }
+        await _repo.createRefillWithCylinder(
+          refillName: _nameCtrl.text.trim(),
+          brand: _brandCtrl.text.trim(),
+          sizeKg: _sizeKg!,
+          refillSalePrice: double.parse(_saleCtrl.text.trim()),
+          refillCostPrice: double.parse(_costCtrl.text.trim()),
+          cylinderName: cylinderName,
+          cylinderSalePrice: cylinderSale,
+          cylinderCostPrice: cylinderCost,
+          lowStockThreshold: int.tryParse(_thresholdCtrl.text.trim()) ?? 5,
+        );
+      } else {
+        await _repo.saveProduct(
+          productId: widget.product?.id,
+          name: _nameCtrl.text.trim(),
+          productType: _type,
+          sizeKg: _hasSize ? _sizeKg : null,
+          brand: _brandCtrl.text.trim().isEmpty ? null : _brandCtrl.text.trim(),
+          salePrice: double.parse(_saleCtrl.text.trim()),
+          costPrice: double.parse(_costCtrl.text.trim()),
+          lowStockThreshold: int.tryParse(_thresholdCtrl.text.trim()) ?? 5,
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (e) {
@@ -182,6 +221,71 @@ class _ProductFormPageState extends State<ProductFormPage> {
                           prefixIcon: Icon(Icons.local_gas_station_outlined),
                         ),
                       ),
+                    ],
+                    if (!_isEditing && _type == ProductType.refill) ...[
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _createMatchingCylinder,
+                        onChanged: (value) =>
+                            setState(() => _createMatchingCylinder = value),
+                        title: const Text('Create matching empty cylinder'),
+                        subtitle: const Text(
+                          'Creates the same brand and size as a cylinder product.',
+                        ),
+                      ),
+                      if (_createMatchingCylinder) ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _cylinderNameCtrl,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            labelText: 'Cylinder name (optional)',
+                            hintText: 'e.g. Afrigas Empty 13kg',
+                            prefixIcon: Icon(Icons.propane_tank_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _cylinderSaleCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Cylinder selling price KSh *',
+                            prefixIcon: Icon(Icons.sell_outlined),
+                          ),
+                          validator: (value) {
+                            if (!_createMatchingCylinder) return null;
+                            final parsed = double.tryParse(
+                              (value ?? '').trim(),
+                            );
+                            return parsed == null || parsed < 0
+                                ? 'Enter a valid cylinder selling price'
+                                : null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _cylinderCostCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Cylinder buying cost KSh *',
+                            prefixIcon: Icon(Icons.shopping_basket_outlined),
+                          ),
+                          validator: (value) {
+                            if (!_createMatchingCylinder) return null;
+                            final parsed = double.tryParse(
+                              (value ?? '').trim(),
+                            );
+                            return parsed == null || parsed < 0
+                                ? 'Enter a valid cylinder buying cost'
+                                : null;
+                          },
+                        ),
+                      ],
                     ],
                     const SizedBox(height: 16),
                     TextFormField(
