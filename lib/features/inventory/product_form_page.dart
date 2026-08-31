@@ -35,6 +35,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
   bool _saving = false;
   String? _saveError;
 
+  bool _isNameManuallyEdited = false;
+  bool _isCylinderNameManuallyEdited = false;
+
   bool get _isEditing => widget.product != null;
   bool get _hasSize =>
       _type == ProductType.refill || _type == ProductType.cylinder;
@@ -42,6 +45,52 @@ class _ProductFormPageState extends State<ProductFormPage> {
     final sale = double.tryParse(_saleCtrl.text.trim());
     final cost = double.tryParse(_costCtrl.text.trim());
     return sale != null && cost != null && sale < cost;
+  }
+
+  String _suggestRefillName() {
+    final sizeStr = _sizeKg != null ? Product.formatSizeKg(_sizeKg) : '';
+    final brand = _brandCtrl.text.trim();
+    final parts = <String>[];
+    if (sizeStr.isNotEmpty) parts.add(sizeStr);
+    if (brand.isNotEmpty) parts.add(brand);
+    parts.add('Refill');
+    return parts.join(' ');
+  }
+
+  String _suggestCylinderName() {
+    final sizeStr = _sizeKg != null ? Product.formatSizeKg(_sizeKg) : '';
+    final brand = _brandCtrl.text.trim();
+
+    String baseName = brand;
+    if (baseName.isEmpty) {
+      baseName = _nameCtrl.text
+          .replaceAll(RegExp(r'\brefill\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\bcylinder\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\b\d+(\.\d+)?\s*kg\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+    }
+
+    final parts = <String>[];
+    if (sizeStr.isNotEmpty) parts.add(sizeStr);
+    if (baseName.isNotEmpty) parts.add(baseName);
+    parts.add('Cylinder');
+
+    return parts.join(' ');
+  }
+
+  void _onSizeOrBrandChanged() {
+    if (_isEditing) return;
+    if (!_isNameManuallyEdited) {
+      if (_type == ProductType.refill) {
+        _nameCtrl.text = _suggestRefillName();
+      } else if (_type == ProductType.cylinder) {
+        _nameCtrl.text = _suggestCylinderName();
+      }
+    }
+    if (!_isCylinderNameManuallyEdited && _type == ProductType.refill) {
+      _cylinderNameCtrl.text = _suggestCylinderName();
+    }
   }
 
   @override
@@ -56,6 +105,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
       _thresholdCtrl.text = p.lowStockThreshold.toString();
       _type = p.productType;
       _sizeKg = p.sizeKg;
+      _isNameManuallyEdited = true;
     } else {
       _thresholdCtrl.text = '5';
     }
@@ -82,9 +132,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
       _saveError = null;
     });
 
-    final cylinderName = _cylinderNameCtrl.text.trim().isEmpty
-        ? '${_brandCtrl.text.trim()} Empty ${Product.formatSizeKg(_sizeKg)}'
-        : _cylinderNameCtrl.text.trim();
+    final cylinderName = _cylinderNameCtrl.text.trim().isNotEmpty
+        ? _cylinderNameCtrl.text.trim()
+        : _suggestCylinderName();
 
     try {
       if (!_isEditing &&
@@ -173,20 +223,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
                       onChanged: (v) => setState(() {
                         _type = v ?? ProductType.refill;
                         _sizeKg = null;
+                        _onSizeOrBrandChanged();
                       }),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _nameCtrl,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Product name *',
-                        hintText: 'e.g. Refill 13kg',
-                        prefixIcon: Icon(Icons.local_fire_department_outlined),
-                      ),
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Enter the product name'
-                          : null,
                     ),
                     if (_hasSize) ...[
                       const SizedBox(height: 16),
@@ -205,7 +243,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
                               child: Text(Product.formatSizeKg(size)),
                             ),
                         ],
-                        onChanged: (v) => setState(() => _sizeKg = v),
+                        onChanged: (v) => setState(() {
+                          _sizeKg = v;
+                          _onSizeOrBrandChanged();
+                        }),
                         validator: (v) => v == null ? 'Select a size' : null,
                       ),
                     ],
@@ -217,11 +258,36 @@ class _ProductFormPageState extends State<ProductFormPage> {
                         textCapitalization: TextCapitalization.words,
                         decoration: const InputDecoration(
                           labelText: 'Brand (optional)',
-                          hintText: 'e.g. Gateway, Total, K-Gas',
+                          hintText: 'e.g. Afrigas, Total, K-Gas',
                           prefixIcon: Icon(Icons.local_gas_station_outlined),
                         ),
+                        onChanged: (_) => setState(() {
+                          _onSizeOrBrandChanged();
+                        }),
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _nameCtrl,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: 'Product name *',
+                        hintText: _type == ProductType.refill
+                            ? 'e.g. 13kg Afrigas Refill'
+                            : _type == ProductType.cylinder
+                            ? 'e.g. 13kg Afrigas Cylinder'
+                            : 'e.g. Regulator with Gauge',
+                        prefixIcon: const Icon(
+                          Icons.local_fire_department_outlined,
+                        ),
+                      ),
+                      onChanged: (v) {
+                        _isNameManuallyEdited = v.trim().isNotEmpty;
+                      },
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Enter the product name'
+                          : null,
+                    ),
                     if (!_isEditing && _type == ProductType.refill) ...[
                       const SizedBox(height: 16),
                       SwitchListTile(
@@ -239,11 +305,19 @@ class _ProductFormPageState extends State<ProductFormPage> {
                         TextFormField(
                           controller: _cylinderNameCtrl,
                           textCapitalization: TextCapitalization.words,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Cylinder name (optional)',
-                            hintText: 'e.g. Afrigas Empty 13kg',
-                            prefixIcon: Icon(Icons.propane_tank_outlined),
+                            hintText: _suggestCylinderName().isNotEmpty
+                                ? _suggestCylinderName()
+                                : 'e.g. 13kg Afrigas Cylinder',
+                            prefixIcon: const Icon(
+                              Icons.propane_tank_outlined,
+                            ),
                           ),
+                          onChanged: (v) {
+                            _isCylinderNameManuallyEdited =
+                                v.trim().isNotEmpty;
+                          },
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
