@@ -56,10 +56,60 @@ class _HomeShellState extends State<HomeShell> {
   void _openSecondaryScreen(Widget screen, String title) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(title)),
-          body: screen,
-        ),
+        builder: (routeContext) => MediaQuery.sizeOf(routeContext).width >= 900
+            ? _buildDesktopSecondaryScreen(routeContext, screen, title)
+            : Scaffold(
+                appBar: AppBar(title: Text(title)),
+                body: screen,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopSecondaryScreen(
+    BuildContext routeContext,
+    Widget screen,
+    String title,
+  ) {
+    return Scaffold(
+      body: Row(
+        children: [
+          SizedBox(width: 270, child: _buildDesktopSidebar()),
+          const VerticalDivider(width: 1, thickness: 1),
+          Expanded(
+            child: Column(
+              children: [
+                SafeArea(
+                  bottom: false,
+                  child: Container(
+                    width: double.infinity,
+                    color: AppColors.surface,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Back',
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () => Navigator.of(routeContext).pop(),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(child: screen),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -213,7 +263,10 @@ class _HomeShellState extends State<HomeShell> {
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           ),
         ),
-        onTap: () => setState(() => _index = index),
+        onTap: () {
+          setState(() => _index = index);
+          if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+        },
       ),
     );
   }
