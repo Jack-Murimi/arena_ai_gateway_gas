@@ -32,7 +32,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
   String? _saveError;
 
   bool get _isEditing => widget.product != null;
-  bool get _hasSize => _type == ProductType.refill || _type == ProductType.cylinder;
+  bool get _hasSize =>
+      _type == ProductType.refill || _type == ProductType.cylinder;
+  bool get _isBelowCost {
+    final sale = double.tryParse(_saleCtrl.text.trim());
+    final cost = double.tryParse(_costCtrl.text.trim());
+    return sale != null && cost != null && sale < cost;
+  }
 
   @override
   void initState() {
@@ -180,8 +186,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _saleCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => setState(() {}),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Selling price KSh *',
                         prefixIcon: Icon(Icons.sell_outlined),
@@ -197,8 +205,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _costCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => setState(() {}),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Buying cost KSh *',
                         hintText: 'Updated by purchases',
@@ -212,6 +222,36 @@ class _ProductFormPageState extends State<ProductFormPage> {
                         return null;
                       },
                     ),
+                    if (_isBelowCost) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_outlined,
+                              size: 18,
+                              color: AppColors.warning,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Selling below cost',
+                                style: TextStyle(
+                                  color: AppColors.warning,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _thresholdCtrl,

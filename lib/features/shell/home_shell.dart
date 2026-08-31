@@ -6,7 +6,6 @@ import '../auth/auth_controller.dart';
 import '../customers/customers_page.dart';
 import '../dashboard/dashboard_page.dart';
 import '../deliveries/deliveries_page.dart';
-import '../inventory/products_page.dart';
 import '../inventory/purchase_orders_page.dart';
 import '../inventory/stock_page.dart';
 import '../inventory/stock_transfers_page.dart';
@@ -44,7 +43,7 @@ class _HomeShellState extends State<HomeShell> {
   static const _pages = [
     DashboardPage(),
     SalesPage(),
-    ProductsPage(),
+    StockPage(),
     CustomersPage(),
     SettingsPage(),
   ];
@@ -105,13 +104,17 @@ class _HomeShellState extends State<HomeShell> {
               Icons.swap_horiz_outlined,
               'Stock transfers',
               () => _openDrawerScreen(
-                  const StockTransfersPage(), 'Stock transfers'),
+                const StockTransfersPage(),
+                'Stock transfers',
+              ),
             ),
             _drawerTile(
               Icons.shopping_basket_outlined,
               'Purchase orders',
               () => _openDrawerScreen(
-                  const PurchaseOrdersPage(), 'Purchase orders'),
+                const PurchaseOrdersPage(),
+                'Purchase orders',
+              ),
             ),
             _drawerTile(
               Icons.local_shipping_outlined,
@@ -122,7 +125,9 @@ class _HomeShellState extends State<HomeShell> {
               Icons.price_check_outlined,
               'Supplier prices',
               () => _openDrawerScreen(
-                  const SupplierPricesPage(), 'Supplier prices'),
+                const SupplierPricesPage(),
+                'Supplier prices',
+              ),
             ),
             _sectionHeader('Operations'),
             _drawerTile(
@@ -139,19 +144,25 @@ class _HomeShellState extends State<HomeShell> {
               Icons.cyclone_outlined,
               'Cylinder fleet',
               () => _openDrawerScreen(
-                  const CylinderFleetPage(), 'Cylinder fleet'),
+                const CylinderFleetPage(),
+                'Cylinder fleet',
+              ),
             ),
             _drawerTile(
               Icons.cyclone_outlined,
               'Cylinder tracking',
               () => _openDrawerScreen(
-                  const CylinderTrackingPage(), 'Cylinder tracking'),
+                const CylinderTrackingPage(),
+                'Cylinder tracking',
+              ),
             ),
             _drawerTile(
               Icons.flag_outlined,
               'Cylinder follow-ups',
               () => _openDrawerScreen(
-                  const ExchangeAlertsPage(), 'Cylinder follow-ups'),
+                const ExchangeAlertsPage(),
+                'Cylinder follow-ups',
+              ),
             ),
             const Spacer(),
             ListTile(
@@ -186,10 +197,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget _drawerTile(IconData icon, String label, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon),
-      title: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
       trailing: const Icon(
         Icons.chevron_right,
         size: 18,

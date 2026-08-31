@@ -142,6 +142,9 @@ class _StockPageState extends State<StockPage> {
       }
 
       // Status filter (evaluated against selected branch or company total)
+      if (row.productType == ProductType.service && _statusFilter != 'all') {
+        return false;
+      }
       final qty = row.quantityFor(_selectedBranchId);
       final isOut = qty <= 0;
       final isLow = qty > 0 && qty <= row.lowStockThreshold;
@@ -193,19 +196,31 @@ class _StockPageState extends State<StockPage> {
 
   int get _metricLowStockCount {
     return _allProductRows
-        .where((r) => r.isLowStockFor(_selectedBranchId))
+        .where(
+          (r) =>
+              r.productType != ProductType.service &&
+              r.isLowStockFor(_selectedBranchId),
+        )
         .length;
   }
 
   int get _metricOutOfStockCount {
     return _allProductRows
-        .where((r) => r.isOutOfStockFor(_selectedBranchId))
+        .where(
+          (r) =>
+              r.productType != ProductType.service &&
+              r.isOutOfStockFor(_selectedBranchId),
+        )
         .length;
   }
 
   int get _metricInStockCount {
     return _allProductRows
-        .where((r) => r.isHealthyFor(_selectedBranchId))
+        .where(
+          (r) =>
+              r.productType != ProductType.service &&
+              r.isHealthyFor(_selectedBranchId),
+        )
         .length;
   }
 
@@ -350,8 +365,9 @@ class _StockPageState extends State<StockPage> {
   }
 
   Future<void> _handleTransfers() async {
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const StockTransfersPage()));
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const StockTransfersPage()));
     _loadData();
   }
 
@@ -1074,44 +1090,58 @@ class _StockPageState extends State<StockPage> {
                     // Per-branch quantities
                     for (final branch in _branches)
                       DataCell(
-                        _branchStockCell(
-                          qty: row.branchQuantities[branch['id']] ?? 0,
-                          threshold: row.lowStockThreshold,
-                        ),
+                        row.productType == ProductType.service
+                            ? const Text('—')
+                            : _branchStockCell(
+                                qty: row.branchQuantities[branch['id']] ?? 0,
+                                threshold: row.lowStockThreshold,
+                              ),
                       ),
 
                     // Total stock
                     DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isOut
-                              ? AppColors.danger.withValues(alpha: 0.12)
-                              : isLow
-                              ? AppColors.warning.withValues(alpha: 0.14)
-                              : AppColors.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          '$total',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                            color: isOut
-                                ? AppColors.danger
-                                : isLow
-                                ? AppColors.warning
-                                : AppColors.primary,
-                          ),
-                        ),
-                      ),
+                      row.productType == ProductType.service
+                          ? const Text(
+                              'Service',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isOut
+                                    ? AppColors.danger.withValues(alpha: 0.12)
+                                    : isLow
+                                    ? AppColors.warning.withValues(alpha: 0.14)
+                                    : AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                '$total',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: isOut
+                                      ? AppColors.danger
+                                      : isLow
+                                      ? AppColors.warning
+                                      : AppColors.primary,
+                                ),
+                              ),
+                            ),
                     ),
 
                     // Status
-                    DataCell(_statusBadge(isOut: isOut, isLow: isLow)),
+                    DataCell(
+                      row.productType == ProductType.service
+                          ? _serviceBadge()
+                          : _statusBadge(isOut: isOut, isLow: isLow),
+                    ),
 
                     // Action
                     DataCell(
@@ -1248,21 +1278,29 @@ class _StockPageState extends State<StockPage> {
                     ),
                     DataCell(_typeBadge(row.productType)),
                     DataCell(
-                      _branchStockCell(
-                        qty: qty,
-                        threshold: row.lowStockThreshold,
-                      ),
+                      row.productType == ProductType.service
+                          ? const Text('—')
+                          : _branchStockCell(
+                              qty: qty,
+                              threshold: row.lowStockThreshold,
+                            ),
                     ),
                     DataCell(
-                      Text(
-                        '${row.lowStockThreshold} units',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
+                      row.productType == ProductType.service
+                          ? const Text('—')
+                          : Text(
+                              '${row.lowStockThreshold} units',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                     ),
-                    DataCell(_statusBadge(isOut: isOut, isLow: isLow)),
+                    DataCell(
+                      row.productType == ProductType.service
+                          ? _serviceBadge()
+                          : _statusBadge(isOut: isOut, isLow: isLow),
+                    ),
                     DataCell(
                       TextButton.icon(
                         icon: const Icon(Icons.swap_horiz, size: 16),
@@ -1297,6 +1335,7 @@ class _StockPageState extends State<StockPage> {
   }
 
   Widget _compactProductCard(ProductStockRow row) {
+    final isService = row.productType == ProductType.service;
     final qty = row.quantityFor(_selectedBranchId);
     final isOut = qty <= 0;
     final isLow = qty > 0 && qty <= row.lowStockThreshold;
@@ -1393,26 +1432,37 @@ class _StockPageState extends State<StockPage> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        '$qty',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: badgeFg,
+                      if (isService)
+                        const Text(
+                          'Service',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textSecondary,
+                          ),
+                        )
+                      else ...[
+                        Text(
+                          '$qty',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: badgeFg,
+                          ),
                         ),
-                      ),
-                      Text(
-                        isOut
-                            ? 'Out of stock'
-                            : isLow
-                            ? 'Low stock'
-                            : 'In stock',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: badgeFg,
+                        Text(
+                          isOut
+                              ? 'Out of stock'
+                              : isLow
+                              ? 'Low stock'
+                              : 'In stock',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: badgeFg,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -1586,6 +1636,24 @@ class _StockPageState extends State<StockPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _serviceBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.textSecondary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Text(
+        'Service',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
