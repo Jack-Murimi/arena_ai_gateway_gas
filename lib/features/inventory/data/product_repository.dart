@@ -39,6 +39,10 @@ class ProductRepository {
     required double salePrice,
     required double costPrice,
     int lowStockThreshold = 5,
+    bool syncLinkedPair = false,
+    String? originalBrand,
+    double? originalSizeKg,
+    String? linkedPairName,
   }) async {
     final data = <String, dynamic>{
       'name': name,
@@ -53,6 +57,37 @@ class ProductRepository {
       await _db.from('products').insert(data);
     } else {
       await _db.from('products').update(data).eq('id', productId);
+
+      if (syncLinkedPair &&
+          linkedPairName != null &&
+          linkedPairName.trim().isNotEmpty) {
+        final targetType = productType == ProductType.refill
+            ? 'cylinder'
+            : (productType == ProductType.cylinder ? 'refill' : null);
+
+        if (targetType != null) {
+          final searchBrand = originalBrand ?? brand;
+          final searchSize = originalSizeKg ?? sizeKg;
+
+          final updateData = <String, dynamic>{
+            'name': linkedPairName.trim(),
+            'brand': ?brand,
+            'size_kg': ?sizeKg,
+          };
+
+          var query = _db
+              .from('products')
+              .update(updateData)
+              .eq('product_type', targetType);
+          if (searchSize != null) {
+            query = query.eq('size_kg', searchSize);
+          }
+          if (searchBrand != null && searchBrand.isNotEmpty) {
+            query = query.ilike('brand', searchBrand);
+          }
+          await query;
+        }
+      }
     }
   }
 

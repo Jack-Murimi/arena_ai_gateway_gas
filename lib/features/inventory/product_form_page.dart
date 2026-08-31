@@ -27,11 +27,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
   final _cylinderNameCtrl = TextEditingController();
   final _cylinderSaleCtrl = TextEditingController();
   final _cylinderCostCtrl = TextEditingController();
+  final _linkedCustomCtrl = TextEditingController();
   final _thresholdCtrl = TextEditingController();
 
   ProductType _type = ProductType.refill;
   double? _sizeKg;
   bool _createMatchingCylinder = true;
+  bool _syncLinkedPair = true;
   bool _saving = false;
   String? _saveError;
 
@@ -50,9 +52,20 @@ class _ProductFormPageState extends State<ProductFormPage> {
   String _suggestRefillName() {
     final sizeStr = _sizeKg != null ? Product.formatSizeKg(_sizeKg) : '';
     final brand = _brandCtrl.text.trim();
+
+    String baseName = brand;
+    if (baseName.isEmpty) {
+      baseName = _nameCtrl.text
+          .replaceAll(RegExp(r'\brefill\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\bcylinder\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\b\d+(\.\d+)?\s*kg\b', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+    }
+
     final parts = <String>[];
     if (sizeStr.isNotEmpty) parts.add(sizeStr);
-    if (brand.isNotEmpty) parts.add(brand);
+    if (baseName.isNotEmpty) parts.add(baseName);
     parts.add('Refill');
     return parts.join(' ');
   }
@@ -120,6 +133,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _cylinderNameCtrl.dispose();
     _cylinderSaleCtrl.dispose();
     _cylinderCostCtrl.dispose();
+    _linkedCustomCtrl.dispose();
     _thresholdCtrl.dispose();
     super.dispose();
   }
@@ -164,6 +178,12 @@ class _ProductFormPageState extends State<ProductFormPage> {
           lowStockThreshold: int.tryParse(_thresholdCtrl.text.trim()) ?? 5,
         );
       } else {
+        final linkedName = _linkedCustomCtrl.text.trim().isNotEmpty
+            ? _linkedCustomCtrl.text.trim()
+            : (_type == ProductType.refill
+                ? _suggestCylinderName()
+                : _suggestRefillName());
+
         await _repo.saveProduct(
           productId: widget.product?.id,
           name: _nameCtrl.text.trim(),
@@ -173,6 +193,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
           salePrice: double.parse(_saleCtrl.text.trim()),
           costPrice: double.parse(_costCtrl.text.trim()),
           lowStockThreshold: int.tryParse(_thresholdCtrl.text.trim()) ?? 5,
+          syncLinkedPair: _isEditing && _syncLinkedPair,
+          originalBrand: widget.product?.brand,
+          originalSizeKg: widget.product?.sizeKg,
+          linkedPairName: linkedName,
         );
       }
       if (!mounted) return;
@@ -283,6 +307,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
                       ),
                       onChanged: (v) {
                         _isNameManuallyEdited = v.trim().isNotEmpty;
+                        setState(() {});
                       },
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'Enter the product name'
@@ -358,6 +383,47 @@ class _ProductFormPageState extends State<ProductFormPage> {
                                 ? 'Enter a valid cylinder buying cost'
                                 : null;
                           },
+                        ),
+                      ],
+                    ],
+                    if (_isEditing &&
+                        (_type == ProductType.refill ||
+                            _type == ProductType.cylinder)) ...[
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _syncLinkedPair,
+                        onChanged: (v) => setState(() => _syncLinkedPair = v),
+                        title: Text(
+                          _type == ProductType.refill
+                              ? 'Update linked cylinder name'
+                              : 'Update linked refill name',
+                        ),
+                        subtitle: Text(
+                          _type == ProductType.refill
+                              ? 'Also update cylinder to "${_linkedCustomCtrl.text.trim().isNotEmpty ? _linkedCustomCtrl.text.trim() : _suggestCylinderName()}"'
+                              : 'Also update refill to "${_linkedCustomCtrl.text.trim().isNotEmpty ? _linkedCustomCtrl.text.trim() : _suggestRefillName()}"',
+                        ),
+                      ),
+                      if (_syncLinkedPair) ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _linkedCustomCtrl,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: InputDecoration(
+                            labelText: _type == ProductType.refill
+                                ? 'Linked cylinder name (optional)'
+                                : 'Linked refill name (optional)',
+                            hintText: _type == ProductType.refill
+                                ? _suggestCylinderName()
+                                : _suggestRefillName(),
+                            prefixIcon: Icon(
+                              _type == ProductType.refill
+                                  ? Icons.propane_tank_outlined
+                                  : Icons.local_fire_department_outlined,
+                            ),
+                          ),
+                          onChanged: (_) => setState(() {}),
                         ),
                       ],
                     ],
