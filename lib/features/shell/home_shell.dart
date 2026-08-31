@@ -331,90 +331,99 @@ class _HomeShellState extends State<HomeShell> {
                 ],
               ),
             ),
-            const Divider(),
-            _sectionHeader('Analytics'),
-            _drawerTile(
-              Icons.bar_chart_outlined,
-              'Reports',
-              () => _openDrawerScreen(const ReportsPage(), 'Reports'),
-            ),
-            _sectionHeader('Stock & suppliers'),
-            _drawerTile(
-              Icons.inventory_outlined,
-              'Stock levels',
-              () => _openDrawerScreen(const StockPage(), 'Stock levels'),
-            ),
-            _drawerTile(
-              Icons.category_outlined,
-              'Product catalogue',
-              () =>
-                  _openDrawerScreen(const ProductsPage(), 'Product catalogue'),
-            ),
-            _drawerTile(
-              Icons.swap_horiz_outlined,
-              'Stock transfers',
-              () => _openDrawerScreen(
-                const StockTransfersPage(),
-                'Stock transfers',
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _sectionHeader('Analytics'),
+                  _drawerTile(
+                    Icons.bar_chart_outlined,
+                    'Reports',
+                    () => _openDrawerScreen(const ReportsPage(), 'Reports'),
+                  ),
+                  _sectionHeader('Stock & suppliers'),
+                  _drawerTile(
+                    Icons.inventory_outlined,
+                    'Stock levels',
+                    () => _openDrawerScreen(const StockPage(), 'Stock levels'),
+                  ),
+                  _drawerTile(
+                    Icons.category_outlined,
+                    'Product catalogue',
+                    () => _openDrawerScreen(
+                      const ProductsPage(),
+                      'Product catalogue',
+                    ),
+                  ),
+                  _drawerTile(
+                    Icons.swap_horiz_outlined,
+                    'Stock transfers',
+                    () => _openDrawerScreen(
+                      const StockTransfersPage(),
+                      'Stock transfers',
+                    ),
+                  ),
+                  _drawerTile(
+                    Icons.shopping_basket_outlined,
+                    'Purchase orders',
+                    () => _openDrawerScreen(
+                      const PurchaseOrdersPage(),
+                      'Purchase orders',
+                    ),
+                  ),
+                  _drawerTile(
+                    Icons.local_shipping_outlined,
+                    'Suppliers',
+                    () => _openDrawerScreen(const SuppliersPage(), 'Suppliers'),
+                  ),
+                  _drawerTile(
+                    Icons.price_check_outlined,
+                    'Supplier prices',
+                    () => _openDrawerScreen(
+                      const SupplierPricesPage(),
+                      'Supplier prices',
+                    ),
+                  ),
+                  _sectionHeader('Operations'),
+                  _drawerTile(
+                    Icons.delivery_dining_outlined,
+                    'Deliveries',
+                    () => _openDrawerScreen(const DeliveriesPage(), 'Deliveries'),
+                  ),
+                  _drawerTile(
+                    Icons.two_wheeler_outlined,
+                    'Riders',
+                    () => _openDrawerScreen(const RidersPage(), 'Riders'),
+                  ),
+                  _drawerTile(
+                    Icons.cyclone_outlined,
+                    'Cylinder fleet',
+                    () => _openDrawerScreen(
+                      const CylinderFleetPage(),
+                      'Cylinder fleet',
+                    ),
+                  ),
+                  _drawerTile(
+                    Icons.cyclone_outlined,
+                    'Cylinder tracking',
+                    () => _openDrawerScreen(
+                      const CylinderTrackingPage(),
+                      'Cylinder tracking',
+                    ),
+                  ),
+                  _drawerTile(
+                    Icons.flag_outlined,
+                    'Cylinder follow-ups',
+                    () => _openDrawerScreen(
+                      const ExchangeAlertsPage(),
+                      'Cylinder follow-ups',
+                    ),
+                  ),
+                ],
               ),
             ),
-            _drawerTile(
-              Icons.shopping_basket_outlined,
-              'Purchase orders',
-              () => _openDrawerScreen(
-                const PurchaseOrdersPage(),
-                'Purchase orders',
-              ),
-            ),
-            _drawerTile(
-              Icons.local_shipping_outlined,
-              'Suppliers',
-              () => _openDrawerScreen(const SuppliersPage(), 'Suppliers'),
-            ),
-            _drawerTile(
-              Icons.price_check_outlined,
-              'Supplier prices',
-              () => _openDrawerScreen(
-                const SupplierPricesPage(),
-                'Supplier prices',
-              ),
-            ),
-            _sectionHeader('Operations'),
-            _drawerTile(
-              Icons.delivery_dining_outlined,
-              'Deliveries',
-              () => _openDrawerScreen(const DeliveriesPage(), 'Deliveries'),
-            ),
-            _drawerTile(
-              Icons.two_wheeler_outlined,
-              'Riders',
-              () => _openDrawerScreen(const RidersPage(), 'Riders'),
-            ),
-            _drawerTile(
-              Icons.cyclone_outlined,
-              'Cylinder fleet',
-              () => _openDrawerScreen(
-                const CylinderFleetPage(),
-                'Cylinder fleet',
-              ),
-            ),
-            _drawerTile(
-              Icons.cyclone_outlined,
-              'Cylinder tracking',
-              () => _openDrawerScreen(
-                const CylinderTrackingPage(),
-                'Cylinder tracking',
-              ),
-            ),
-            _drawerTile(
-              Icons.flag_outlined,
-              'Cylinder follow-ups',
-              () => _openDrawerScreen(
-                const ExchangeAlertsPage(),
-                'Cylinder follow-ups',
-              ),
-            ),
-            const Spacer(),
+            const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.danger),
               title: const Text(
