@@ -56,7 +56,7 @@ class _HomeShellState extends State<HomeShell> {
   void _openSecondaryScreen(Widget screen, String title) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (routeContext) => MediaQuery.sizeOf(routeContext).width >= 900
+        builder: (routeContext) => MediaQuery.sizeOf(routeContext).width >= 750
             ? _buildDesktopSecondaryScreen(routeContext, screen, title)
             : Scaffold(
                 appBar: AppBar(title: Text(title)),
@@ -447,7 +447,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 900;
+    final isWide = MediaQuery.sizeOf(context).width >= 750;
 
     final content = IndexedStack(index: _index, children: _pages);
 

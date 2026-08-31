@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/theme/app_theme.dart';
 import 'data/stock_repository.dart';
 
 /// Inter-branch stock transfers. A refill line remains linked to its matching
@@ -55,13 +56,15 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
       await _db.rpc(rpc, params: parameters);
       await _load();
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Transfer updated.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Transfer updated.')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -233,7 +236,44 @@ class _StockTransfersPageState extends State<StockTransfersPage> {
           : _error != null
           ? Center(child: Text(_error!))
           : _transfers.isEmpty
-          ? const Center(child: Text('No stock transfers yet.'))
+          ? Center(
+              child: Card(
+                margin: const EdgeInsets.all(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.swap_horiz_outlined,
+                        size: 48,
+                        color: AppColors.primary.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'No stock transfers yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Create a transfer when stock moves between branches.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _newTransfer,
+                        icon: const Icon(Icons.add),
+                        label: const Text('New transfer'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView.builder(
