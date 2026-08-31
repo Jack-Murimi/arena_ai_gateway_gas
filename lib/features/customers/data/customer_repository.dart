@@ -22,8 +22,9 @@ class CustomerRepository {
   }
 
   /// Saves a customer (insert or update) together with all contacts and
-  /// locations (contacts/locations are replaced wholesale on update).
-  Future<void> saveCustomer({
+  /// locations in a single atomic transaction.
+  /// Uses the save_customer_atomic RPC to ensure all operations succeed or fail together.
+  Future<Map<String, dynamic>> saveCustomer({
     String? customerId,
     required String name,
     String? email,
@@ -31,11 +32,14 @@ class CustomerRepository {
     required List<CustomerContact> contacts,
     required List<CustomerLocation> locations,
   }) async {
-    final contactRows = [
+    // Convert contacts to RPC format
+    final contactInputs = [
       for (final c in contacts)
         {'name': c.name, 'phone': c.phone, 'is_primary': c.isPrimary},
     ];
-    final locationRows = [
+
+    // Convert locations to RPC format
+    final locationInputs = [
       for (final l in locations)
         {
           'name': l.name,
@@ -45,33 +49,25 @@ class CustomerRepository {
         },
     ];
 
-    if (customerId == null) {
-      final res = await _db
-          .from('customers')
-          .insert({'name': name, 'email': email, 'credit_limit': creditLimit})
-          .select('id')
-          .single();
-      final newId = res['id'] as String;
-      await _insertContacts(newId, contactRows);
-      await _insertLocations(newId, locationRows);
-    } else {
-      await _db
-          .from('customers')
-          .update({'name': name, 'email': email, 'credit_limit': creditLimit})
-          .eq('id', customerId);
-      await _db
-          .from('customer_contacts')
-          .delete()
-          .eq('customer_id', customerId);
-      await _db
-          .from('customer_locations')
-          .delete()
-          .eq('customer_id', customerId);
-      await _insertContacts(customerId, contactRows);
-      await _insertLocations(customerId, locationRows);
-    }
+    // Call the atomic RPC
+    final data = await _db.rpc(
+      'save_customer_atomic',
+      params: {
+        'p_input': {
+          'customer_id': customerId,
+          'name': name,
+          'email': email,
+          'credit_limit': creditLimit,
+          'contacts': contactInputs,
+          'locations': locationInputs,
+        },
+      },
+    );
+
+    return Map<String, dynamic>.from(data as Map);
   }
 
+  /// Legacy helper methods - kept for reference but no longer used in saveCustomer
   Future<void> _insertContacts(
     String customerId,
     List<Map<String, dynamic>> rows,
