@@ -344,11 +344,6 @@ class _HomeShellState extends State<HomeShell> {
                   ),
                   _sectionHeader('Stock & suppliers'),
                   _drawerTile(
-                    Icons.inventory_outlined,
-                    'Stock levels',
-                    () => _openDrawerScreen(const StockPage(), 'Stock levels'),
-                  ),
-                  _drawerTile(
                     Icons.category_outlined,
                     'Product catalogue',
                     () => _openDrawerScreen(

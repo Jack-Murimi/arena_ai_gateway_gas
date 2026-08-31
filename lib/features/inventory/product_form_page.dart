@@ -181,8 +181,8 @@ class _ProductFormPageState extends State<ProductFormPage> {
         final linkedName = _linkedCustomCtrl.text.trim().isNotEmpty
             ? _linkedCustomCtrl.text.trim()
             : (_type == ProductType.refill
-                ? _suggestCylinderName()
-                : _suggestRefillName());
+                  ? _suggestCylinderName()
+                  : _suggestRefillName());
 
         await _repo.saveProduct(
           productId: widget.product?.id,
@@ -335,13 +335,10 @@ class _ProductFormPageState extends State<ProductFormPage> {
                             hintText: _suggestCylinderName().isNotEmpty
                                 ? _suggestCylinderName()
                                 : 'e.g. 13kg Afrigas Cylinder',
-                            prefixIcon: const Icon(
-                              Icons.propane_tank_outlined,
-                            ),
+                            prefixIcon: const Icon(Icons.propane_tank_outlined),
                           ),
                           onChanged: (v) {
-                            _isCylinderNameManuallyEdited =
-                                v.trim().isNotEmpty;
+                            _isCylinderNameManuallyEdited = v.trim().isNotEmpty;
                           },
                         ),
                         const SizedBox(height: 16),

@@ -373,9 +373,9 @@ class _StockPageState extends State<StockPage> {
   }
 
   Future<void> _handleAddProduct() async {
-    final saved = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const ProductFormPage()),
-    );
+    final saved = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const ProductFormPage()));
     if (saved == true) {
       _loadData();
     }
@@ -552,7 +552,10 @@ class _StockPageState extends State<StockPage> {
                 label: Text(isWide ? 'Add product' : 'Add'),
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 0,
+                  ),
                   textStyle: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -1994,7 +1997,6 @@ class _StockPageState extends State<StockPage> {
   }
 
   // ---------------------------------------------------------------------------
-  // Floating Actions (Transfers, Reconcile, Order)
   // Floating Actions (Add Product, Transfers, Reconcile, Order)
   // ---------------------------------------------------------------------------
 
@@ -2092,9 +2094,7 @@ class _StockPageState extends State<StockPage> {
                   'Place purchase order',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
-                subtitle: const Text(
-                  'Order low stock products from suppliers',
-                ),
+                subtitle: const Text('Order low stock products from suppliers'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _handleOrder();
@@ -2152,18 +2152,15 @@ class _StockPageState extends State<StockPage> {
           backgroundColor: AppColors.primaryDark,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.swap_horiz_outlined),
-          label: Text(isWide ? 'Branch transfers' : 'Transfer'),
           label: const Text('Branch transfers'),
         ),
         const SizedBox(width: 8),
         FloatingActionButton.extended(
           heroTag: 'stock-reconcile-btn',
           onPressed: _handleReconcile,
-          backgroundColor: AppColors.primary,
           backgroundColor: AppColors.textSecondary,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.upload_file_outlined),
-          label: Text(isWide ? 'Reconcile stock' : 'Count'),
           label: const Text('Reconcile stock'),
         ),
         const SizedBox(width: 8),
