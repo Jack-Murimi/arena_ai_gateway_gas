@@ -682,25 +682,101 @@ class _SaleFormState extends State<SaleForm> {
                   style: TextStyle(
                       fontSize: 12.5, color: AppColors.textSecondary),
                 ),
-              ),
-            for (final item in _items) _lineItemTile(item),
-            const Divider(height: 20),
-            Row(
-              children: [
-                const Text(
-                  'Total',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-                const Spacer(),
-                Text(
-                  AppFormatters.kes(_total),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+              )
+            else
+              Column(
+                children: [
+                  // Column headers
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          flex: 2,
+                          child: Text(
+                            'Product',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 40),
+                        const SizedBox(
+                          width: 50,
+                          child: Text(
+                            'Qty',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const SizedBox(
+                          width: 92,
+                          child: Text(
+                            'Price',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(
+                          width: 100,
+                          child: Text(
+                            'Total',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(width: 40),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  for (final item in _items) _lineItemTile(item),
+                ],
+              ),
+            const Divider(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Text(
+                    'Total',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                  const Spacer(),
+                  Text(
+                    AppFormatters.kes(_total),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -709,76 +785,118 @@ class _SaleFormState extends State<SaleForm> {
   }
 
   Widget _lineItemTile(_LineItem item) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.product.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.5,
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+        color: AppColors.surface,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item.product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
                   ),
                 ),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() {
-                  if (item.quantity > 1) item.quantity--;
-                }),
-                icon: const Icon(Icons.remove_circle_outline, size: 20),
-              ),
-              Text('${item.quantity}'),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() {
-                  final available = _availableFor(item.product.id);
-                  final isService =
-                      item.product.productType == ProductType.service;
-                  if (isService || item.quantity < available) {
-                    item.quantity++;
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Only $available of ${item.product.name} '
-                            'available.'),
-                      ),
-                    );
-                  }
-                }),
-                icon: const Icon(Icons.add_circle_outline, size: 20),
-              ),
-              SizedBox(
-                width: 92,
-                child: TextField(
-                  controller: item.priceCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    prefixText: 'KSh ',
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => setState(() {
+                    if (item.quantity > 1) item.quantity--;
+                  }),
+                  icon: const Icon(Icons.remove_circle_outline, size: 20),
+                ),
+                SizedBox(
+                  width: 50,
+                  child: TextField(
+                    textAlign: TextAlign.center,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
+                    ),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    controller: TextEditingController(text: '${item.quantity}'),
+                    onChanged: (value) {
+                      final qty = int.tryParse(value) ?? item.quantity;
+                      final available = _availableFor(item.product.id);
+                      final isService = item.product.productType == ProductType.service;
+                      if (qty >= 1 && (isService || qty <= available)) {
+                        setState(() => item.quantity = qty);
+                      }
+                    },
                   ),
                 ),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() {
-                  item.dispose();
-                  _items.remove(item);
-                }),
-                icon: const Icon(Icons.delete_outline,
-                    color: AppColors.danger, size: 20),
-              ),
-            ],
-          ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => setState(() {
+                    final available = _availableFor(item.product.id);
+                    final isService =
+                        item.product.productType == ProductType.service;
+                    if (isService || item.quantity < available) {
+                      item.quantity++;
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Only $available of ${item.product.name} '
+                              'available.'),
+                        ),
+                      );
+                    }
+                  }),
+                  icon: const Icon(Icons.add_circle_outline, size: 20),
+                ),
+                SizedBox(
+                  width: 92,
+                  child: TextField(
+                    controller: item.priceCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      prefixText: 'KSh ',
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 100,
+                  child: Text(
+                    AppFormatters.kes(item.lineTotal),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => setState(() {
+                    item.dispose();
+                    _items.remove(item);
+                  }),
+                  icon: const Icon(Icons.delete_outline,
+                      color: AppColors.danger, size: 20),
+                ),
+              ],
+            ),
           if (item.isRefill) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             if (item.returnCylinder == null)
               Container(
                 margin: const EdgeInsets.only(bottom: 6),
@@ -876,18 +994,6 @@ class _SaleFormState extends State<SaleForm> {
               ],
             ),
           ],
-          Row(
-            children: [
-              const Spacer(),
-              Text(
-                AppFormatters.kes(item.lineTotal),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -1302,15 +1408,27 @@ class AddProductSheet extends StatefulWidget {
 class _AddProductSheetState extends State<AddProductSheet> {
   final _searchCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+  final _qtyCtrl = TextEditingController(text: '1');
 
   Product? _selected;
   int _qty = 1;
   String? _qtyError;
+  final _qtyFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _qtyFocusNode.requestFocus();
+    });
+  }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     _priceCtrl.dispose();
+    _qtyCtrl.dispose();
+    _qtyFocusNode.dispose();
     super.dispose();
   }
 
@@ -1331,10 +1449,14 @@ class _AddProductSheetState extends State<AddProductSheet> {
     setState(() {
       _selected = p;
       _qty = 1;
+      _qtyCtrl.text = '1';
       _qtyError = null;
       _priceCtrl.text = p.salePrice == p.salePrice.roundToDouble()
           ? p.salePrice.toStringAsFixed(0)
           : p.salePrice.toString();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _qtyFocusNode.requestFocus();
     });
   }
 
@@ -1342,11 +1464,13 @@ class _AddProductSheetState extends State<AddProductSheet> {
     final product = _selected;
     if (product == null) return;
     final available = _availableFor(product);
-    if (_qty < 1) {
+    
+    final qty = int.tryParse(_qtyCtrl.text.trim()) ?? 1;
+    if (qty < 1) {
       setState(() => _qtyError = 'Quantity must be at least 1.');
       return;
     }
-    if (_qty > available) {
+    if (qty > available) {
       setState(() =>
           _qtyError = 'Only $available available — reduce the quantity.');
       return;
@@ -1358,7 +1482,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
     }
     Navigator.of(context).pop(_PickedProduct(
       product: product,
-      quantity: _qty,
+      quantity: qty,
       priceText: _priceCtrl.text.trim(),
     ));
   }
@@ -1526,25 +1650,56 @@ class _AddProductSheetState extends State<AddProductSheet> {
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const Spacer(),
+                      SizedBox(
+                        width: 80,
+                        child: TextField(
+                          controller: _qtyCtrl,
+                          focusNode: _qtyFocusNode,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          onChanged: (value) {
+                            final qty = int.tryParse(value) ?? 1;
+                            setState(() {
+                              _qty = qty.clamp(1, available);
+                              _qtyCtrl.text = _qty.toString();
+                              _qtyError = null;
+                            });
+                          },
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 4,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       IconButton(
                         visualDensity: VisualDensity.compact,
                         onPressed: () => setState(() {
-                          if (_qty > 1) _qty--;
+                          if (_qty > 1) {
+                            _qty--;
+                            _qtyCtrl.text = _qty.toString();
+                          }
                           _qtyError = null;
                         }),
                         icon: const Icon(Icons.remove_circle_outline, size: 22),
                       ),
-                      Text(
-                        '$_qty',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
                       IconButton(
                         visualDensity: VisualDensity.compact,
                         onPressed: () => setState(() {
-                          if (_qty < available) _qty++;
+                          if (_qty < available) {
+                            _qty++;
+                            _qtyCtrl.text = _qty.toString();
+                          }
                           _qtyError = null;
                         }),
                         icon: const Icon(Icons.add_circle_outline, size: 22),
