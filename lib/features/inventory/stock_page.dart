@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/num_parse.dart';
 import 'data/inventory_batch_repository.dart';
 import 'data/product_repository.dart';
 import 'data/stock_repository.dart';
-import 'models/inventory_batch.dart';
 import 'models/product.dart';
 import 'models/stock_item.dart';
 import 'order_form_page.dart';
@@ -471,13 +469,6 @@ class _StockPageState extends State<StockPage> {
     if (saved == true) {
       _loadData();
     }
-  }
-
-  Future<void> _handleEditCatalogue() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ProductsPage()),
-    );
-    _loadData();
   }
 
   Future<void> _handleEditProduct(String productId) async {

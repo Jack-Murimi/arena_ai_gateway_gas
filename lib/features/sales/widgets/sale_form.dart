@@ -895,106 +895,82 @@ class _SaleFormState extends State<SaleForm> {
                 ),
               ],
             ),
-          if (item.isRefill) ...[
-            const SizedBox(height: 8),
-            if (item.returnCylinder == null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.danger.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.error_outline,
-                        size: 15, color: AppColors.danger),
-                    SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'No empty returned — fleet reduces by this '
-                        'quantity and it will be flagged for follow-up.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.danger,
-                        ),
+            if (item.isRefill)
+              Column(
+                children: [
+                  const SizedBox(height: 8),
+                  if (item.returnCylinder == null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.error_outline, size: 15, color: AppColors.danger),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'No empty returned — fleet reduces by this quantity and it will be flagged for follow-up.',
+                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.danger),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            if (_hasExchangeMismatch(item))
-              Container(
-                margin: const EdgeInsets.only(bottom: 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.flag_outlined,
-                        size: 15, color: AppColors.warning),
-                    SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Different brand/size exchange — this will be '
-                        'flagged for review.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.warning,
-                        ),
+                  if (_hasExchangeMismatch(item))
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.flag_outlined, size: 15, color: AppColors.warning),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Different brand/size exchange — this will be flagged for review.',
+                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.warning),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            Row(
-              children: [
-                const Icon(Icons.cyclone_outlined,
-                    size: 15, color: AppColors.textSecondary),
-                const SizedBox(width: 6),
-                const Text(
-                  'Cylinder returned:',
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    initialValue: item.returnCylinder?.id,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('None'),
-                      ),
-                      for (final c in _products.where(
-                          (p) => p.productType == ProductType.cylinder))
-                        DropdownMenuItem<String?>(
-                          value: c.id,
-                          child: Text(c.name, overflow: TextOverflow.ellipsis),
+                  Row(
+                    children: [
+                      const Icon(Icons.cyclone_outlined, size: 15, color: AppColors.textSecondary),
+                      const SizedBox(width: 6),
+                      const Text('Cylinder returned:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String?>(
+                          initialValue: item.returnCylinder?.id,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          items: [
+                            const DropdownMenuItem<String?>(value: null, child: Text('None')),
+                            for (final c in _products.where((p) => p.productType == ProductType.cylinder))
+                              DropdownMenuItem<String?>(value: c.id, child: Text(c.name, overflow: TextOverflow.ellipsis)),
+                          ],
+                          onChanged: (v) => setState(() {
+                            item.returnCylinder = v == null ? null : _products.firstWhere((p) => p.id == v);
+                          }),
                         ),
+                      ),
                     ],
-                    onChanged: (v) => setState(() {
-                      item.returnCylinder = v == null
-                          ? null
-                          : _products.firstWhere((p) => p.id == v);
-                    }),
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
           ],
-        ],
+        ),
       ),
     );
   }

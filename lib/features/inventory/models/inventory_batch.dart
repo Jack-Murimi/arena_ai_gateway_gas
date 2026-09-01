@@ -71,14 +71,14 @@ class InventoryBatch {
         quantityRemaining: parseInt(map['quantity_remaining']) ?? 0,
         unitCost: parseDouble(map['unit_cost']) ?? 0,
         purchaseDate: map['purchase_date'] != null
-            ? DateTime.tryParse(map['purchase_date'] as String)
+            ? DateTime.tryParse(map['purchase_date'] as String) ?? DateTime.now()
             : DateTime.now(),
         referenceType: map['reference_type'] as String?,
         referenceId: map['reference_id'] as String?,
         notes: map['notes'] as String?,
         createdBy: map['created_by'] as String?,
         createdAt: map['created_at'] != null
-            ? DateTime.tryParse(map['created_at'] as String)
+            ? DateTime.tryParse(map['created_at'] as String) ?? DateTime.now()
             : DateTime.now(),
         updatedAt: map['updated_at'] != null
             ? DateTime.tryParse(map['updated_at'] as String)
@@ -146,7 +146,7 @@ class SaleFifoAllocation {
         unitCost: parseDouble(map['unit_cost']) ?? 0,
         totalCost: parseDouble(map['total_cost']),
         createdAt: map['created_at'] != null
-            ? DateTime.tryParse(map['created_at'] as String)
+            ? DateTime.tryParse(map['created_at'] as String) ?? DateTime.now()
             : DateTime.now(),
       );
 

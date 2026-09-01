@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/inventory_batch.dart';
-import '../models/product.dart';
 
 /// Repository for managing inventory batches and FIFO cost tracking.
 class InventoryBatchRepository {
@@ -12,11 +11,7 @@ class InventoryBatchRepository {
     String? branchId,
     String? productId,
   }) async {
-    var query = _db
-        .from('current_inventory_batches')
-        .select()
-        .order('purchase_date', ascending: true)
-        .order('created_at', ascending: true);
+    var query = _db.from('current_inventory_batches').select();
 
     if (branchId != null) {
       query = query.eq('branch_id', branchId);
@@ -24,6 +19,10 @@ class InventoryBatchRepository {
     if (productId != null) {
       query = query.eq('product_id', productId);
     }
+
+    query = query
+        .order('purchase_date', ascending: true)
+        .order('created_at', ascending: true);
 
     final rows = await query;
     return rows.map(InventoryBatch.fromMap).toList();
@@ -102,7 +101,7 @@ class InventoryBatchRepository {
     final rows = await _db
         .from('products')
         .select('id, sale_price')
-        .in_('id', productIds);
+        .inFilter('id', productIds);
     
     return {
       for (final row in rows)
