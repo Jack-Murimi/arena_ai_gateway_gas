@@ -56,10 +56,16 @@ class ProductStockRow {
     this.brand,
     this.sizeKg,
     this.lowStockThreshold = 5,
+    this.sellingPrice = 0,
+    this.costPrice = 0,
     Map<String, int>? branchQuantities,
     Map<String, String>? branchNames,
+    Map<String, double>? branchCosts,
+    Map<String, double>? branchSellingPrices,
   }) : branchQuantities = branchQuantities ?? {},
-       branchNames = branchNames ?? {};
+       branchNames = branchNames ?? {},
+       branchCosts = branchCosts ?? {},
+       branchSellingPrices = branchSellingPrices ?? {};
 
   final String productId;
   final String productName;
@@ -67,14 +73,52 @@ class ProductStockRow {
   final String? brand;
   final double? sizeKg;
   final int lowStockThreshold;
+  final double sellingPrice;
+  final double costPrice;
   final Map<String, int> branchQuantities; // branchId -> quantity
   final Map<String, String> branchNames; // branchId -> branchName
+  final Map<String, double> branchCosts; // branchId -> average cost
+  final Map<String, double> branchSellingPrices; // branchId -> selling price
 
   int get totalQuantity => branchQuantities.values.fold(0, (sum, q) => sum + q);
 
   int quantityFor(String? branchId) {
     if (branchId == null) return totalQuantity;
     return branchQuantities[branchId] ?? 0;
+  }
+
+  double costPriceFor(String? branchId) {
+    if (branchId == null) return costPrice;
+    return branchCosts[branchId] ?? costPrice;
+  }
+
+  double sellingPriceFor(String? branchId) {
+    if (branchId == null) return sellingPrice;
+    return branchSellingPrices[branchId] ?? sellingPrice;
+  }
+
+  /// Calculate expected profit per unit for a specific branch
+  double get expectedProfitPerUnit => sellingPrice - costPrice;
+
+  /// Calculate expected profit per unit for a specific branch
+  double expectedProfitPerUnitFor(String? branchId) {
+    return sellingPriceFor(branchId) - costPriceFor(branchId);
+  }
+
+  /// Calculate total expected profit for all stock of this product
+  double get totalExpectedProfit => expectedProfitPerUnit * totalQuantity;
+
+  /// Calculate total expected profit for a specific branch
+  double totalExpectedProfitFor(String? branchId) {
+    return expectedProfitPerUnitFor(branchId) * quantityFor(branchId);
+  }
+
+  /// Calculate total inventory value at cost for all stock
+  double get totalInventoryValue => costPrice * totalQuantity;
+
+  /// Calculate total inventory value at cost for a specific branch
+  double totalInventoryValueFor(String? branchId) {
+    return costPriceFor(branchId) * quantityFor(branchId);
   }
 
   bool isOutOfStockFor(String? branchId) => quantityFor(branchId) <= 0;

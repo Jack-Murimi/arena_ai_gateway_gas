@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/num_parse.dart';
+import 'data/inventory_batch_repository.dart';
 import 'data/product_repository.dart';
 import 'data/stock_repository.dart';
+import 'models/inventory_batch.dart';
 import 'models/product.dart';
 import 'models/stock_item.dart';
 import 'order_form_page.dart';
@@ -28,6 +31,7 @@ class StockPage extends StatefulWidget {
 
 class _StockPageState extends State<StockPage> {
   final _repo = StockRepository();
+  final _batchRepo = InventoryBatchRepository();
   final _searchCtrl = TextEditingController();
 
   List<Map<String, dynamic>> _branches = [];
@@ -35,6 +39,11 @@ class _StockPageState extends State<StockPage> {
   List<StockItem> _rawStock = [];
   bool _loading = true;
   String? _error;
+  
+  // FIFO cost data: productId -> selling price
+  final Map<String, double> _productSellingPrices = {};
+  // FIFO cost data: productId -> average cost (weighted by remaining quantity)
+  final Map<String, double> _productAverageCosts = {};
 
   ProductType? _selectedCategory;
   String _statusFilter =
@@ -78,6 +87,9 @@ class _StockPageState extends State<StockPage> {
       // branch switching are instantaneous without refetches.
       final stockRows = await _repo.fetchStock();
 
+      // Load FIFO cost data for all products
+      await _loadProductPricesAndCosts(stockRows);
+
       if (!mounted) return;
       setState(() {
         _branches = branches;
@@ -93,6 +105,33 @@ class _StockPageState extends State<StockPage> {
     }
   }
 
+  /// Load selling prices and average FIFO costs for products in stock
+  Future<void> _loadProductPricesAndCosts(List<StockItem> stockItems) async {
+    final productIds = stockItems
+        .map((s) => s.productId)
+        .toSet()
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    // Fetch selling prices for all products
+    if (productIds.isNotEmpty) {
+      final prices = await _batchRepo.fetchProductSellingPricesBatch(productIds);
+      for (final entry in prices.entries) {
+        _productSellingPrices[entry.key] = entry.value;
+      }
+    }
+
+    // Fetch average costs for each product at each branch
+    for (final item in stockItems) {
+      if (item.productId.isEmpty) continue;
+      final branchId = item.branchId;
+      if (branchId.isEmpty) continue;
+      
+      final avgCost = await _batchRepo.fetchAverageCost(branchId, item.productId);
+      _productAverageCosts['${branchId}_${item.productId}'] = avgCost;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Data Aggregation & Filtering
   // ---------------------------------------------------------------------------
@@ -103,6 +142,9 @@ class _StockPageState extends State<StockPage> {
 
     for (final item in _rawStock) {
       final existing = map[item.productId];
+      final sellingPrice = _productSellingPrices[item.productId] ?? 0;
+      final costPrice = _productAverageCosts['${item.branchId}_${item.productId}'] ?? 0;
+      
       if (existing == null) {
         map[item.productId] = ProductStockRow(
           productId: item.productId,
@@ -111,12 +153,18 @@ class _StockPageState extends State<StockPage> {
           brand: item.brand,
           sizeKg: item.sizeKg,
           lowStockThreshold: item.lowStockThreshold,
+          sellingPrice: sellingPrice,
+          costPrice: costPrice,
           branchQuantities: {item.branchId: item.quantity},
           branchNames: {item.branchId: item.branchName},
+          branchCosts: {item.branchId: costPrice},
+          branchSellingPrices: {item.branchId: sellingPrice},
         );
       } else {
         existing.branchQuantities[item.branchId] = item.quantity;
         existing.branchNames[item.branchId] = item.branchName;
+        existing.branchCosts[item.branchId] = _productAverageCosts['${item.branchId}_${item.productId}'] ?? existing.costPrice;
+        existing.branchSellingPrices[item.branchId] = _productSellingPrices[item.productId] ?? existing.sellingPrice;
       }
     }
 
@@ -224,6 +272,49 @@ class _StockPageState extends State<StockPage> {
               r.isHealthyFor(_selectedBranchId),
         )
         .length;
+  }
+
+  // ---------------------------------------------------------------------------
+  // FIFO Cost Metrics
+  // ---------------------------------------------------------------------------
+
+  /// Total inventory value at cost for selected branch or all branches
+  double get _metricTotalInventoryValue {
+    return _allProductRows
+        .where((r) => r.productType != ProductType.service)
+        .fold(0.0, (sum, r) => sum + r.totalInventoryValueFor(_selectedBranchId));
+  }
+
+  /// Total expected profit for all stock at selected branch or all branches
+  double get _metricTotalExpectedProfit {
+    return _allProductRows
+        .where((r) => r.productType != ProductType.service)
+        .fold(0.0, (sum, r) => sum + r.totalExpectedProfitFor(_selectedBranchId));
+  }
+
+  /// Average profit margin percentage across all products
+  double get _metricAverageProfitMargin {
+    final productsWithProfit = _allProductRows
+        .where(
+          (r) =>
+              r.productType != ProductType.service &&
+              r.sellingPriceFor(_selectedBranchId) > 0,
+        )
+        .toList();
+    
+    if (productsWithProfit.isEmpty) return 0;
+    
+    final totalProfit = productsWithProfit.fold(
+      0.0,
+      (sum, r) => sum + r.totalExpectedProfitFor(_selectedBranchId),
+    );
+    final totalRevenue = productsWithProfit.fold(
+      0.0,
+      (sum, r) => sum + (r.sellingPriceFor(_selectedBranchId) * r.quantityFor(_selectedBranchId)),
+    );
+    
+    if (totalRevenue <= 0) return 0;
+    return (totalProfit / totalRevenue) * 100;
   }
 
   // ---------------------------------------------------------------------------
@@ -380,6 +471,13 @@ class _StockPageState extends State<StockPage> {
     if (saved == true) {
       _loadData();
     }
+  }
+
+  Future<void> _handleEditCatalogue() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProductsPage()),
+    );
+    _loadData();
   }
 
   Future<void> _handleEditProduct(String productId) async {
@@ -847,6 +945,28 @@ class _StockPageState extends State<StockPage> {
         icon: Icons.error_outline,
         color: AppColors.danger,
       ),
+      // FIFO Cost Metrics
+      _summaryCard(
+        label: 'Inventory Value',
+        value: 'KSh ${_metricTotalInventoryValue.toStringAsFixed(0)}',
+        subtitle: 'Total cost value',
+        icon: Icons.account_balance_wallet_outlined,
+        color: const Color(0xFF0891B2),
+      ),
+      _summaryCard(
+        label: 'Expected Profit',
+        value: 'KSh ${_metricTotalExpectedProfit.toStringAsFixed(0)}',
+        subtitle: 'At current prices',
+        icon: Icons.trending_up_outlined,
+        color: AppColors.success,
+      ),
+      _summaryCard(
+        label: 'Profit Margin',
+        value: '${_metricAverageProfitMargin.toStringAsFixed(1)}%',
+        subtitle: 'Average margin',
+        icon: Icons.percent_outlined,
+        color: AppColors.accent,
+      ),
     ];
 
     if (isWide) {
@@ -1058,6 +1178,39 @@ class _StockPageState extends State<StockPage> {
                   ),
                 ),
                 const DataColumn(
+                  numeric: true,
+                  label: Text(
+                    'COST PRICE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const DataColumn(
+                  numeric: true,
+                  label: Text(
+                    'SELLING PRICE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const DataColumn(
+                  numeric: true,
+                  label: Text(
+                    'PROFIT/UNIT',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                const DataColumn(
                   label: Text(
                     'STATUS',
                     style: TextStyle(
@@ -1199,6 +1352,41 @@ class _StockPageState extends State<StockPage> {
                             ),
                     ),
 
+                    // Cost Price
+                    DataCell(
+                      row.productType == ProductType.service
+                          ? const Text('—')
+                          : Text(
+                              'KSh ${row.costPriceFor(_selectedBranchId).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                    ),
+
+                    // Selling Price
+                    DataCell(
+                      row.productType == ProductType.service
+                          ? const Text('—')
+                          : Text(
+                              'KSh ${row.sellingPriceFor(_selectedBranchId).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                    ),
+
+                    // Profit per Unit
+                    DataCell(
+                      row.productType == ProductType.service
+                          ? const Text('—')
+                          : _profitCell(row.expectedProfitPerUnitFor(_selectedBranchId)),
+                    ),
+
                     // Status
                     DataCell(
                       row.productType == ProductType.service
@@ -1289,7 +1477,21 @@ class _StockPageState extends State<StockPage> {
                 const DataColumn(
                   numeric: true,
                   label: Text(
-                    'MIN ALERT',
+                    'COST PRICE',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                const DataColumn(
+                  numeric: true,
+                  label: Text(
+                    'SELLING PRICE',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                const DataColumn(
+                  numeric: true,
+                  label: Text(
+                    'PROFIT/UNIT',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -1382,16 +1584,37 @@ class _StockPageState extends State<StockPage> {
                               threshold: row.lowStockThreshold,
                             ),
                     ),
+                    // Cost Price
                     DataCell(
                       row.productType == ProductType.service
                           ? const Text('—')
                           : Text(
-                              '${row.lowStockThreshold} units',
+                              'KSh ${row.costPriceFor(_selectedBranchId).toStringAsFixed(0)}',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
                               ),
                             ),
+                    ),
+                    // Selling Price
+                    DataCell(
+                      row.productType == ProductType.service
+                          ? const Text('—')
+                          : Text(
+                              'KSh ${row.sellingPriceFor(_selectedBranchId).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                    ),
+                    // Profit per Unit
+                    DataCell(
+                      row.productType == ProductType.service
+                          ? const Text('—')
+                          : _profitCell(row.expectedProfitPerUnitFor(_selectedBranchId)),
                     ),
                     DataCell(
                       row.productType == ProductType.service
@@ -1541,50 +1764,94 @@ class _StockPageState extends State<StockPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Big Stock Quantity Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badgeBg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: badgeFg.withValues(alpha: 0.3)),
-                    ),
+                  // Stock and Price Info Column
+                  SizedBox(
+                    width: 120,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (isService)
-                          const Text(
-                            'Service',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
+                        // Stock Quantity Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: badgeFg.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isService)
+                                const Text(
+                                  'Service',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                )
+                              else ...[
+                                Text(
+                                  '$qty',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    color: badgeFg,
+                                  ),
+                                ),
+                                Text(
+                                  isOut
+                                      ? 'Out'
+                                      : isLow
+                                      ? 'Low'
+                                      : 'OK',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: badgeFg,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (!isService) ...[
+                          const SizedBox(height: 4),
+                          // Cost Price
+                          Text(
+                            'Cost: KSh ${row.costPriceFor(_selectedBranchId).toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 10,
                               color: AppColors.textSecondary,
                             ),
-                          )
-                        else ...[
-                          Text(
-                            '$qty',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: badgeFg,
-                            ),
+                            textAlign: TextAlign.right,
                           ),
+                          // Selling Price
                           Text(
-                            isOut
-                                ? 'Out of stock'
-                                : isLow
-                                ? 'Low stock'
-                                : 'In stock',
+                            'Sell: KSh ${row.sellingPriceFor(_selectedBranchId).toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                          // Profit
+                          Text(
+                            'Profit: KSh ${row.expectedProfitPerUnitFor(_selectedBranchId).toStringAsFixed(0)}',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: badgeFg,
+                              color: row.expectedProfitPerUnitFor(_selectedBranchId) > 0
+                                  ? AppColors.success
+                                  : AppColors.danger,
                             ),
+                            textAlign: TextAlign.right,
                           ),
                         ],
                       ],
@@ -1779,6 +2046,19 @@ class _StockPageState extends State<StockPage> {
           fontWeight: FontWeight.w700,
           color: AppColors.textSecondary,
         ),
+      ),
+    );
+  }
+
+  Widget _profitCell(double profit) {
+    final color = profit > 0 ? AppColors.success : AppColors.danger;
+    final symbol = profit > 0 ? '+' : '';
+    return Text(
+      'KSh $symbol${profit.toStringAsFixed(0)}',
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: color,
       ),
     );
   }
