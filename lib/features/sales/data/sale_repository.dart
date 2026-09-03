@@ -125,6 +125,17 @@ class SaleRepository {
     final riders = sale['riders_summary'] as String?;
     final total = parseDouble(sale['total']) ?? 0;
 
+    // Fetch FIFO data from sales_fifo_view
+    final fifoData = await _db
+        .from('sales_fifo_view')
+        .select('total_cost, total_profit')
+        .eq('id', saleId)
+        .single();
+
+    final totalCost = parseDouble(fifoData?['total_cost']) ?? 0;
+    final totalProfit = parseDouble(fifoData?['total_profit']) ?? 0;
+    final profitMarginPercentage = total > 0 ? (totalProfit / total) * 100 : 0;
+
     return ReceiptData(
       saleId: saleId,
       invoiceNo: (sale['invoice_no'] as String?) ?? '',
@@ -144,6 +155,29 @@ class SaleRepository {
       mpesaCode: mpesa,
       riders: riders,
       note: sale['note'] as String?,
+      totalCost: totalCost,
+      totalProfit: totalProfit,
+      profitMarginPercentage: profitMarginPercentage,
     );
+  }
+
+  /// Fetch FIFO allocations for a specific sale
+  Future<List<Map<String, dynamic>>> fetchSaleFifoAllocations(String saleId) async {
+    final rows = await _db
+        .from('sale_fifo_allocations')
+        .select('*, inventory_batches(purchase_date, reference_type, reference_id)')
+        .eq('sale_id', saleId)
+        .order('created_at');
+    return rows;
+  }
+
+  /// Fetch FIFO cost summary for a specific sale
+  Future<Map<String, dynamic>> fetchSaleFifoSummary(String saleId) async {
+    final fifoData = await _db
+        .from('sales_fifo_view')
+        .select('total_cost, total_profit')
+        .eq('id', saleId)
+        .single();
+    return fifoData ?? {};
   }
 }

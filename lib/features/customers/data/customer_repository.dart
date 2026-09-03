@@ -67,27 +67,6 @@ class CustomerRepository {
     return Map<String, dynamic>.from(data as Map);
   }
 
-  /// Legacy helper methods - kept for reference but no longer used in saveCustomer
-  Future<void> _insertContacts(
-    String customerId,
-    List<Map<String, dynamic>> rows,
-  ) async {
-    if (rows.isEmpty) return;
-    await _db.from('customer_contacts').insert([
-      for (final r in rows) {...r, 'customer_id': customerId},
-    ]);
-  }
-
-  Future<void> _insertLocations(
-    String customerId,
-    List<Map<String, dynamic>> rows,
-  ) async {
-    if (rows.isEmpty) return;
-    await _db.from('customer_locations').insert([
-      for (final r in rows) {...r, 'customer_id': customerId},
-    ]);
-  }
-
   // -------------------------------------------------------------------------
   // Contacts & locations (grouped by customer for list screens)
   // -------------------------------------------------------------------------

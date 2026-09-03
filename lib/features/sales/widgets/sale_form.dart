@@ -330,6 +330,14 @@ class _SaleFormState extends State<SaleForm> {
   void _showResult(Map<String, dynamic> result) {
     final status = result['payment_status'] as String? ?? 'paid';
     final balanceDue = (result['balance_due'] as num?)?.toDouble() ?? 0;
+    final totalCost = (result['total_cost'] as num?)?.toDouble() ?? 0;
+    final totalProfit = (result['profit'] as num?)?.toDouble() ?? 0;
+    final revenue = (result['total'] as num?)?.toDouble() ?? 0;
+    final profitMargin = revenue > 0 ? (totalProfit / revenue) * 100 : 0;
+
+    // Determine if we should show FIFO data (only for paid/partial sales with cost data)
+    final showFifoData = totalCost > 0 || totalProfit > 0;
+
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -356,8 +364,7 @@ class _SaleFormState extends State<SaleForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _resultRow('Invoice', result['invoice_no']?.toString() ?? ''),
-            _resultRow('Total', AppFormatters.kes(
-                (result['total'] as num?)?.toDouble() ?? 0)),
+            _resultRow('Total', AppFormatters.kes(revenue)),
             _resultRow('Paid', AppFormatters.kes(
                 (result['amount_paid'] as num?)?.toDouble() ?? 0)),
             if (status == 'unpaid')
@@ -366,6 +373,23 @@ class _SaleFormState extends State<SaleForm> {
               _resultRow('Balance due', AppFormatters.kes(balanceDue))
             else if (balanceDue < 0)
               _resultRow('Overpayment (credit)', AppFormatters.kes(-balanceDue)),
+            if (showFifoData) ...[
+              const Divider(height: 12),
+              const Text(
+                'FIFO Cost Analysis',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              _resultRow('Cost of Goods', AppFormatters.kes(totalCost)),
+              _resultRow('Profit', AppFormatters.kes(totalProfit),
+                  color: totalProfit >= 0 ? AppColors.success : AppColors.danger),
+              _resultRow('Margin', '${profitMargin.toStringAsFixed(1)}%',
+                  color: profitMargin >= 0 ? AppColors.success : AppColors.danger),
+            ],
             const SizedBox(height: 8),
             Text(
               status == 'unpaid'
@@ -374,7 +398,9 @@ class _SaleFormState extends State<SaleForm> {
                   : status == 'partial'
                       ? 'The unpaid balance has been added to the '
                           'customer\'s account.'
-                      : 'Payment complete.',
+                      : showFifoData
+                          ? 'Payment complete. FIFO cost tracking applied.'
+                          : 'Payment complete.',
               style: const TextStyle(
                 fontSize: 12.5,
                 color: AppColors.textSecondary,
@@ -407,7 +433,7 @@ class _SaleFormState extends State<SaleForm> {
     );
   }
 
-  Widget _resultRow(String label, String value) {
+  Widget _resultRow(String label, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -419,7 +445,10 @@ class _SaleFormState extends State<SaleForm> {
           const Spacer(),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: color ?? AppColors.textPrimary,
+            ),
           ),
         ],
       ),
@@ -968,9 +997,9 @@ class _SaleFormState extends State<SaleForm> {
                     ],
                   ),
                 ],
-              )
+              ),
           ],
-        ),
+        ],
       ),
     );
   }

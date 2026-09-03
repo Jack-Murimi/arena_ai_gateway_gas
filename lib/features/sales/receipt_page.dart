@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/colors.dart' as PdfColors;
 import 'package:printing/printing.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -175,6 +176,15 @@ class _ReceiptPageState extends State<ReceiptPage> {
             if (r.balanceDue > 0.001)
               _pdfRow('Balance due', AppFormatters.kes(r.balanceDue),
                   bold: true),
+            if (r.hasFifoData) ...[
+              pw.SizedBox(height: 4),
+              pw.Divider(),
+              _pdfRow('Cost of Goods', AppFormatters.kes(r.totalCost)),
+              _pdfRow('Profit', AppFormatters.kes(r.totalProfit),
+                  color: r.totalProfit >= 0 ? PdfColors.green700 : PdfColors.red700),
+              _pdfRow('Margin', '${r.profitMarginPercentage.toStringAsFixed(1)}%',
+                  color: r.profitMarginPercentage >= 0 ? PdfColors.green700 : PdfColors.red700),
+            ],
             if (r.paymentMethod != null)
               _pdfRow('Method', r.paymentMethod!.toUpperCase()),
             if (r.mpesaCode != null && r.mpesaCode!.isNotEmpty)
@@ -200,7 +210,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
   }
 
   pw.Widget _pdfRow(String label, String value,
-      {bool bold = false, double size = 9}) {
+      {bool bold = false, double size = 9, pw.Color? color}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
@@ -210,7 +220,11 @@ class _ReceiptPageState extends State<ReceiptPage> {
               style: pw.TextStyle(
                   fontSize: size, fontWeight: pw.FontWeight.bold)),
           pw.Text(value,
-              style: pw.TextStyle(fontSize: size, fontWeight: pw.FontWeight.bold)),
+              style: pw.TextStyle(
+                  fontSize: size,
+                  fontWeight: pw.FontWeight.bold,
+                  color: color
+              )),
         ],
       ),
     );
@@ -360,6 +374,16 @@ class _ReceiptPaper extends StatelessWidget {
             if (r.balanceDue > 0.001)
               _row('Balance due', AppFormatters.kes(r.balanceDue),
                   bold: true, color: AppColors.warning),
+            if (r.hasFifoData) ...[
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              _row('Cost of Goods', AppFormatters.kes(r.totalCost),
+                  color: AppColors.textSecondary),
+              _row('Profit', AppFormatters.kes(r.totalProfit),
+                  color: r.totalProfit >= 0 ? AppColors.success : AppColors.danger),
+              _row('Margin', '${r.profitMarginPercentage.toStringAsFixed(1)}%',
+                  color: r.profitMarginPercentage >= 0 ? AppColors.success : AppColors.danger),
+            ],
             if (r.paymentMethod != null)
               _row('Method', r.paymentMethod!.toUpperCase()),
             if (r.mpesaCode != null && r.mpesaCode!.isNotEmpty)

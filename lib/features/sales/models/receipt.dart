@@ -7,12 +7,16 @@ class ReceiptLine {
     required this.quantity,
     required this.unitPrice,
     required this.lineTotal,
+    this.costPrice,
+    this.profit,
   });
 
   final String productName;
   final int quantity;
   final double unitPrice;
   final double lineTotal;
+  final double? costPrice;
+  final double? profit;
 
   factory ReceiptLine.fromMap(Map<String, dynamic> map) {
     final product = map['products'] as Map<String, dynamic>?;
@@ -22,6 +26,8 @@ class ReceiptLine {
       quantity: parseInt(map['quantity']) ?? 0,
       unitPrice: parseDouble(map['unit_price']) ?? 0,
       lineTotal: parseDouble(map['line_total']) ?? 0,
+      costPrice: parseDouble(map['cost_price']),
+      profit: parseDouble(map['profit']),
     );
   }
 }
@@ -45,6 +51,9 @@ class ReceiptData {
     this.mpesaCode,
     this.riders,
     this.note,
+    this.totalCost = 0,
+    this.totalProfit = 0,
+    this.profitMarginPercentage = 0,
   });
 
   final String saleId;
@@ -63,4 +72,16 @@ class ReceiptData {
   final String? mpesaCode;
   final String? riders;
   final String? note;
+  final double totalCost;
+  final double totalProfit;
+  final double profitMarginPercentage;
+
+  /// Returns true if this sale has FIFO cost data
+  bool get hasFifoData => totalCost > 0 || totalProfit > 0;
+
+  /// Calculate profit margin percentage
+  double get calculatedProfitMarginPercentage {
+    if (total <= 0) return 0;
+    return (totalProfit / total) * 100;
+  }
 }
