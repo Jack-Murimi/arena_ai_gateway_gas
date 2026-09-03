@@ -132,9 +132,9 @@ class SaleRepository {
         .eq('id', saleId)
         .single();
 
-    final totalCost = parseDouble(fifoData?['total_cost']) ?? 0;
-    final totalProfit = parseDouble(fifoData?['total_profit']) ?? 0;
-    final profitMarginPercentage = total > 0 ? (totalProfit / total) * 100 : 0;
+    final totalCost = parseDouble(fifoData?['total_cost']) ?? 0.0;
+    final totalProfit = parseDouble(fifoData?['total_profit']) ?? 0.0;
+    final profitMarginPercentage = total > 0 ? (totalProfit / total) * 100.0 : 0.0;
 
     return ReceiptData(
       saleId: saleId,

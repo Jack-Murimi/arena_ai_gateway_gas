@@ -20,11 +20,9 @@ class InventoryBatchRepository {
       query = query.eq('product_id', productId);
     }
 
-    query = query
+    final rows = await query
         .order('purchase_date', ascending: true)
         .order('created_at', ascending: true);
-
-    final rows = await query;
     return rows.map(InventoryBatch.fromMap).toList();
   }
 

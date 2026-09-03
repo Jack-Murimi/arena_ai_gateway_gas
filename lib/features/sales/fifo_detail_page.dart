@@ -19,7 +19,7 @@ class FifoDetailPage extends StatefulWidget {
 class _FifoDetailPageState extends State<FifoDetailPage> {
   final _batchRepo = InventoryBatchRepository();
 
-  List<Map<String, dynamic>> _allocations = [];
+  List<SaleFifoAllocation> _allocations = [];
   Map<String, InventoryBatch> _batches = {};
   bool _loading = true;
   String? _error;
@@ -47,7 +47,7 @@ class _FifoDetailPageState extends State<FifoDetailPage> {
 
       // Fetch batch details for each allocation
       final batchIds = allocations
-          .map((a) => a['batch_id'] as String?)
+          .map((a) => a.batchId)
           .where((id) => id != null && id.isNotEmpty)
           .cast<String>()
           .toSet();
@@ -66,10 +66,8 @@ class _FifoDetailPageState extends State<FifoDetailPage> {
       double totalCost = 0;
       double totalQuantity = 0;
       for (final a in allocations) {
-        final qty = (a['quantity'] as num?)?.toDouble() ?? 0;
-        final cost = (a['unit_cost'] as num?)?.toDouble() ?? 0;
-        totalCost += qty * cost;
-        totalQuantity += qty;
+        totalCost += a.calculatedTotalCost;
+        totalQuantity += a.quantity.toDouble();
       }
 
       if (!mounted) return;
@@ -255,13 +253,13 @@ class _FifoDetailPageState extends State<FifoDetailPage> {
     );
   }
 
-  Widget _buildAllocationCard(Map<String, dynamic> allocation, int index) {
-    final batchId = allocation['batch_id'] as String?;
+  Widget _buildAllocationCard(SaleFifoAllocation allocation, int index) {
+    final batchId = allocation.batchId;
     final batch = batchId != null ? _batches[batchId] : null;
-    final productId = allocation['product_id'] as String?;
-    final quantity = (allocation['quantity'] as num?)?.toInt() ?? 0;
-    final unitCost = (allocation['unit_cost'] as num?)?.toDouble() ?? 0;
-    final totalCost = (allocation['total_cost'] as num?)?.toDouble() ?? quantity * unitCost;
+    final productId = allocation.productId;
+    final quantity = allocation.quantity;
+    final unitCost = allocation.unitCost;
+    final totalCost = allocation.calculatedTotalCost;
 
     return Card(
       margin: EdgeInsets.zero,
