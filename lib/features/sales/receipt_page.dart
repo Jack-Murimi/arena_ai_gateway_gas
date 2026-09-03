@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import 'data/sale_repository.dart';
 import 'models/receipt.dart';
+import 'fifo_detail_page.dart';
 
 /// View / print / share a sale receipt (80mm thermal-friendly layout).
 class ReceiptPage extends StatefulWidget {
@@ -236,6 +237,19 @@ class _ReceiptPageState extends State<ReceiptPage> {
       appBar: AppBar(
         title: Text(_receipt?.invoiceNo ?? 'Receipt'),
         actions: [
+          if (_receipt?.hasFifoData == true)
+            IconButton(
+              tooltip: 'View FIFO Details',
+              icon: const Icon(Icons.analytics_outlined),
+              onPressed: _receipt == null
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => FifoDetailPage(
+                              saleId: _receipt!.saleId),
+                        ),
+                      ),
+            ),
           IconButton(
             tooltip: 'Print',
             icon: const Icon(Icons.print_outlined),
